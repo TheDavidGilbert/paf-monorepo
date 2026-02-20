@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 export interface BuildConfig {
   inputPath: string;
+  /** Base input directory (two levels above inputPath, e.g. packages/builder/input/) */
+  inputDir: string;
   outputDir: string;
   version: string;
 }
@@ -40,11 +42,16 @@ export function parseConfig(): BuildConfig {
     inputPath = defaultPath;
   }
 
+  // Derive the base input directory (two levels above the CSV PAF file)
+  // e.g. …/input/CSV PAF/CSV PAF.csv  →  …/input/
+  const inputDir = dirname(dirname(inputPath));
+
   const outputDir = resolve(values.out ?? 'packages/api/data');
   const version = values.version ?? `paf-${new Date().toISOString().split('T')[0]}`;
 
   return {
     inputPath,
+    inputDir,
     outputDir,
     version,
   };
