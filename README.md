@@ -39,10 +39,10 @@ This project consists of two packages:
   serves fast postcode lookups with CORS support.
 
 > **Note**: This is an open-source tool for processing and serving Royal Mail
-> PAF data. Users are responsible for obtaining their own Royal Mail PAF
-> license and ensuring compliance with Royal Mail's terms. The dataset in
-> production deployments may contain 40+ million records requiring 12+ GB RAM.
-> See [HOSTING.md](HOSTING.md) for infrastructure requirements.
+> PAF data. Users are responsible for obtaining their own Royal Mail PAF license
+> and ensuring compliance with Royal Mail's terms. The dataset in production
+> deployments may contain 40+ million records requiring 12+ GB RAM. See
+> [HOSTING.md](HOSTING.md) for infrastructure requirements.
 
 ### Key Features
 
@@ -186,7 +186,8 @@ pnpm --filter @paf/builder build -- --input path/to/your.csv --out path/to/outpu
 
 Options:
 
-- `--input` (optional): Path to the Royal Mail PAF CSV file (default: `packages/builder/input/CSV PAF/CSV PAF.csv`)
+- `--input` (optional): Path to the Royal Mail PAF CSV file (default:
+  `packages/builder/input/CSV PAF/CSV PAF.csv`)
 - `--out` (optional): Output directory (default: `packages/api/data`)
 - `--version` (optional): Version string for metadata (default:
   `paf-YYYY-MM-DD`)
@@ -242,9 +243,9 @@ configuration in `packages/api/src/server.ts`:
 ```typescript
 await fastify.register(cors, {
   origin: [
-    /^https?:\/\/localhost:\d+$/,  // localhost (default)
-    /\.yourdomain\.com$/,           // Add: *.yourdomain.com
-    'https://www.example.com',      // Add: exact origin match
+    /^https?:\/\/localhost:\d+$/, // localhost (default)
+    /\.yourdomain\.com$/, // Add: *.yourdomain.com
+    'https://www.example.com', // Add: exact origin match
   ],
   credentials: true,
 });
@@ -363,7 +364,8 @@ usage healthy).
 GET /health/memory
 ```
 
-Returns detailed memory usage statistics including heap, process memory, heap spaces, and V8 statistics.
+Returns detailed memory usage statistics including heap, process memory, heap
+spaces, and V8 statistics.
 
 **Response (200 OK):**
 
@@ -516,8 +518,8 @@ GET /lookup/autocomplete?q=<prefix>&limit=<n>
 
 **Query Parameters:**
 
-- `q` (required): Postcode prefix, 2–7 alphanumeric characters (case-insensitive,
-  spaces stripped automatically)
+- `q` (required): Postcode prefix, 2–7 alphanumeric characters
+  (case-insensitive, spaces stripped automatically)
 - `limit` (optional): Maximum results to return (1–100, default: 10)
 
 **Example:**
@@ -1017,7 +1019,8 @@ When contributing to this project:
 
 ## Contributing
 
-This is an **open source project** - we welcome contributions from the community!
+This is an **open source project** - we welcome contributions from the
+community!
 
 **Quick Start for Contributors:**
 

@@ -136,22 +136,22 @@ export function decodeRow(rowIndex: number): Address {
 
   // Map to Address object using schema field order
   const address: Address = {
-    postcode:                fieldValues[0]  ?? '',
-    postTown:                fieldValues[1]  ?? '',
-    dependentLocality:       fieldValues[2]  ?? '',
-    doubleDependentLocality: fieldValues[3]  ?? '',
-    thoroughfare:            fieldValues[4]  ?? '',
-    dependentThoroughfare:   fieldValues[5]  ?? '',
-    buildingNumber:          fieldValues[6]  ?? '',
-    buildingName:            fieldValues[7]  ?? '',
-    subBuildingName:         fieldValues[8]  ?? '',
-    poBox:                   fieldValues[9]  ?? '',
-    departmentName:          fieldValues[10] ?? '',
-    organisationName:        fieldValues[11] ?? '',
-    udprn:                   fieldValues[12] ?? '',
-    postcodeType:            fieldValues[13] ?? '',
+    postcode: fieldValues[0] ?? '',
+    postTown: fieldValues[1] ?? '',
+    dependentLocality: fieldValues[2] ?? '',
+    doubleDependentLocality: fieldValues[3] ?? '',
+    thoroughfare: fieldValues[4] ?? '',
+    dependentThoroughfare: fieldValues[5] ?? '',
+    buildingNumber: fieldValues[6] ?? '',
+    buildingName: fieldValues[7] ?? '',
+    subBuildingName: fieldValues[8] ?? '',
+    poBox: fieldValues[9] ?? '',
+    departmentName: fieldValues[10] ?? '',
+    organisationName: fieldValues[11] ?? '',
+    udprn: fieldValues[12] ?? '',
+    postcodeType: fieldValues[13] ?? '',
     suOrganisationIndicator: fieldValues[14] ?? '',
-    deliveryPointSuffix:     fieldValues[15] ?? '',
+    deliveryPointSuffix: fieldValues[15] ?? '',
   };
 
   return address;
@@ -183,7 +183,11 @@ export function loadMRDataset(dataDir: string): void {
 
   mrDataset = {
     mrRows,
-    mrRowStart: new Uint32Array(mrRowStartBuf.buffer, mrRowStartBuf.byteOffset, mrRowStartBuf.byteLength / 4),
+    mrRowStart: new Uint32Array(
+      mrRowStartBuf.buffer,
+      mrRowStartBuf.byteOffset,
+      mrRowStartBuf.byteLength / 4
+    ),
     mrUdprn,
     mrStart: new Uint32Array(mrStartBuf.buffer, mrStartBuf.byteOffset, mrStartBuf.byteLength / 4),
     mrEnd: new Uint32Array(mrEndBuf.buffer, mrEndBuf.byteOffset, mrEndBuf.byteLength / 4),
@@ -319,7 +323,9 @@ export function decodeMRRow(rowIndex: number): MRRecord {
     if (len === 0) {
       fieldValues.push('');
     } else {
-      fieldValues.push(mrDataset.mrRows.subarray(payloadOffset, payloadOffset + len).toString('utf-8'));
+      fieldValues.push(
+        mrDataset.mrRows.subarray(payloadOffset, payloadOffset + len).toString('utf-8')
+      );
       payloadOffset += len;
     }
   }

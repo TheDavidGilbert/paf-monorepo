@@ -77,7 +77,8 @@ The API supports Cross-Origin Resource Sharing (CORS). By default, only
 
 **Default allowed origins:**
 
-- **Local development**: `http://localhost:{port}` and `https://localhost:{port}` (any port)
+- **Local development**: `http://localhost:{port}` and
+  `https://localhost:{port}` (any port)
 
 **Adding Custom Domains:**
 
@@ -181,7 +182,8 @@ consistency with legacy address lookup systems.
 
 ### AddressModel Object
 
-Fields are returned in Royal Mail PAF format. All fields are always present; optional PAF fields are empty strings when not applicable.
+Fields are returned in Royal Mail PAF format. All fields are always present;
+optional PAF fields are empty strings when not applicable.
 
 ```typescript
 {
@@ -291,7 +293,8 @@ curl "http://localhost:3000/lookup/autocomplete?q=sw1a%201"
 
 **Error Responses:**
 
-- **400 Bad Request** — missing, too short, too long, or invalid characters in `q`
+- **400 Bad Request** — missing, too short, too long, or invalid characters in
+  `q`
 
   ```json
   { "status": 400, "error": "Query must be at least 2 characters" }
@@ -299,7 +302,8 @@ curl "http://localhost:3000/lookup/autocomplete?q=sw1a%201"
 
 **Notes:**
 
-- The query is uppercased and spaces are stripped before searching, so `"sw1a 1"` and `"SW1A1"` produce the same results.
+- The query is uppercased and spaces are stripped before searching, so
+  `"sw1a 1"` and `"SW1A1"` produce the same results.
 - Results are sorted lexicographically (matching the binary index order).
 - Responses are cached for 1 hour (`Cache-Control: public, max-age=3600`).
 
@@ -951,5 +955,6 @@ For issues, questions, or feature requests:
   service owners)
 - **[CONTRIBUTOR.md](CONTRIBUTOR.md)** - How to contribute improvements or fixes
   to this service
-- **[CODEOWNER.md](CODEOWNER.md)** - Service ownership, SLOs, and support contacts
+- **[CODEOWNER.md](CODEOWNER.md)** - Service ownership, SLOs, and support
+  contacts
 - **[README.md](README.md)** - Developer setup and technical documentation

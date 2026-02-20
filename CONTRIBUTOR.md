@@ -20,8 +20,8 @@ Lookup Service. This guide will help you get started.
 
 This is an **open source** project. Its primary purpose is to serve as a
 foundation you can fork, adapt, and self-host with your own Royal Mail PAF
-licence data. Community contributions are genuinely welcome — whether that's
-bug fixes, improvements, or documentation.
+licence data. Community contributions are genuinely welcome — whether that's bug
+fixes, improvements, or documentation.
 
 ### Benefits of Contributing
 

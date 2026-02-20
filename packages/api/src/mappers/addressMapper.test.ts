@@ -167,7 +167,11 @@ describe('mapToAddressModel', () => {
     expect(result.formattedAddress).not.toContain('');
     // No street lines should appear
     const hasStreet = result.formattedAddress.some(
-      (line) => line !== 'HM REVENUE & CUSTOMS' && line !== 'PO BOX 4000' && line !== 'LONDON' && line !== 'SW1A 1AA'
+      (line) =>
+        line !== 'HM REVENUE & CUSTOMS' &&
+        line !== 'PO BOX 4000' &&
+        line !== 'LONDON' &&
+        line !== 'SW1A 1AA'
     );
     expect(hasStreet).toBe(false);
   });
@@ -212,7 +216,12 @@ const baseParent: Address = makeAddress({
 
 describe('mapMRToAddressModel', () => {
   it('should use MR buildingName as subBuildingName (common case — flat identifier)', () => {
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 1', subBuildingName: '', umprn: '99000001' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'FLAT 1',
+      subBuildingName: '',
+      umprn: '99000001',
+    };
     const result = mapMRToAddressModel(baseParent, mr);
 
     expect(result.subBuildingName).toBe('FLAT 1');
@@ -224,7 +233,12 @@ describe('mapMRToAddressModel', () => {
   });
 
   it('should use MR subBuildingName and buildingName when both are set', () => {
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'GROUND FLOOR', subBuildingName: 'UNIT A', umprn: '99000002' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'GROUND FLOOR',
+      subBuildingName: 'UNIT A',
+      umprn: '99000002',
+    };
     const result = mapMRToAddressModel(baseParent, mr);
 
     expect(result.subBuildingName).toBe('UNIT A');
@@ -232,14 +246,24 @@ describe('mapMRToAddressModel', () => {
   });
 
   it('should use MR buildingNumber as subBuildingName when only buildingNumber is set', () => {
-    const mr: MRRecord = { buildingNumber: '2', buildingName: '', subBuildingName: '', umprn: '99000003' };
+    const mr: MRRecord = {
+      buildingNumber: '2',
+      buildingName: '',
+      subBuildingName: '',
+      umprn: '99000003',
+    };
     const result = mapMRToAddressModel(baseParent, mr);
 
     expect(result.subBuildingName).toBe('2');
   });
 
   it('should set umprn from MR record and udprn from parent', () => {
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 2', subBuildingName: '', umprn: '99000004' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'FLAT 2',
+      subBuildingName: '',
+      umprn: '99000004',
+    };
     const result = mapMRToAddressModel(baseParent, mr);
 
     expect(result.umprn).toBe('99000004');
@@ -252,7 +276,12 @@ describe('mapMRToAddressModel', () => {
       buildingNumber: '',
       buildingName: 'VICTORIA HOUSE',
     });
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 3', subBuildingName: '', umprn: '99000005' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'FLAT 3',
+      subBuildingName: '',
+      umprn: '99000005',
+    };
     const result = mapMRToAddressModel(parentWithBuilding, mr);
 
     expect(result.subBuildingName).toBe('FLAT 3');
@@ -266,7 +295,12 @@ describe('mapMRToAddressModel', () => {
       ...baseParent,
       dependentLocality: 'MAYFAIR',
     });
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 1', subBuildingName: '', umprn: '99000006' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'FLAT 1',
+      subBuildingName: '',
+      umprn: '99000006',
+    };
     const result = mapMRToAddressModel(parentWithLocality, mr);
 
     expect(result.dependentLocality).toBe('MAYFAIR');
@@ -279,7 +313,12 @@ describe('mapMRToAddressModel', () => {
       organisationName: 'ACME LTD',
       departmentName: 'ACCOUNTS',
     });
-    const mr: MRRecord = { buildingNumber: '', buildingName: 'SUITE 1', subBuildingName: '', umprn: '99000007' };
+    const mr: MRRecord = {
+      buildingNumber: '',
+      buildingName: 'SUITE 1',
+      subBuildingName: '',
+      umprn: '99000007',
+    };
     const result = mapMRToAddressModel(parentWithOrg, mr);
 
     expect(result.organisationName).toBe('ACME LTD');

@@ -39,19 +39,21 @@ Current dataset (Royal Mail PAF sample):
 
 - **Addresses**: 584,266
 - **Postcodes**: 37,150
-- **Binary files**: `rows.bin`, `rowStart.bin`, `distinctPcKey.bin`, `pcStart.bin`, `pcEnd.bin`, `schema.json`, `meta.json` (+ MR files if Multiple Residence data is present)
+- **Binary files**: `rows.bin`, `rowStart.bin`, `distinctPcKey.bin`,
+  `pcStart.bin`, `pcEnd.bin`, `schema.json`, `meta.json` (+ MR files if Multiple
+  Residence data is present)
 
 ### Memory Footprint
 
 **Minimum Requirements (sample dataset):**
 
-| Component            | Memory     | Notes                      |
-| -------------------- | ---------- | -------------------------- |
-| Node.js runtime      | 50 MB      | Base V8 heap               |
+| Component            | Memory     | Notes                             |
+| -------------------- | ---------- | --------------------------------- |
+| Node.js runtime      | 50 MB      | Base V8 heap                      |
 | Dataset binary files | 55 MB      | Sample dataset loaded into memory |
-| Fastify framework    | 20 MB      | HTTP server overhead       |
-| Heap headroom        | 100 MB     | GC and temporary objects   |
-| **Total minimum**    | **230 MB** | Bare minimum for sample dataset |
+| Fastify framework    | 20 MB      | HTTP server overhead              |
+| Heap headroom        | 100 MB     | GC and temporary objects          |
+| **Total minimum**    | **230 MB** | Bare minimum for sample dataset   |
 
 **Recommended Allocation:**
 
@@ -63,7 +65,8 @@ Current dataset (Royal Mail PAF sample):
 
 ### Full PAF Dataset Projections
 
-Production deployment with complete Royal Mail PAF data (16 fields including B2B fields):
+Production deployment with complete Royal Mail PAF data (16 fields including B2B
+fields):
 
 | Dataset Size                          | Estimated RAM | Recommended Allocation |
 | ------------------------------------- | ------------- | ---------------------- |
@@ -159,8 +162,8 @@ resources:
 
 ### AWS Hosting Recommendations
 
-> **Note**: These are example hosting options. You can deploy this service to any
-> infrastructure that meets the memory requirements.
+> **Note**: These are example hosting options. You can deploy this service to
+> any infrastructure that meets the memory requirements.
 
 #### EC2 Instance Types (Examples)
 
@@ -757,15 +760,20 @@ ls -l packages/api/data/addresses.bin
 
 **Scaling indicators:**
 
-- Scale out when: CPU is consistently high, p99 latency is elevated, or request rate is approaching capacity
+- Scale out when: CPU is consistently high, p99 latency is elevated, or request
+  rate is approaching capacity
 - Scale in when: CPU is consistently low during off-peak periods
 
 ### Deployment Checklist
 
-1. Provision infrastructure with adequate memory (12+ GB RAM per instance for 40M records)
-2. Configure load balancer with health checks pointing to `/health/live` and `/health/ready`
-3. Build the dataset using the builder package and include binary files in your container image
-4. Run load tests with your production dataset to validate performance before going live
+1. Provision infrastructure with adequate memory (12+ GB RAM per instance for
+   40M records)
+2. Configure load balancer with health checks pointing to `/health/live` and
+   `/health/ready`
+3. Build the dataset using the builder package and include binary files in your
+   container image
+4. Run load tests with your production dataset to validate performance before
+   going live
 
 ---
 

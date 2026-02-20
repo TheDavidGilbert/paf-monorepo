@@ -284,7 +284,7 @@ async function main() {
   };
 
   if (mrResult) {
-    meta['mulRes'] = {
+    meta.mulRes = {
       rows: mrResult.rows,
       distinctUdprns: mrResult.distinctUdprns,
       checksums: mrResult.checksums,

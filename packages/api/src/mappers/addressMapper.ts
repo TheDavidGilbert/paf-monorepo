@@ -21,9 +21,9 @@ export function mapToAddressModel(pafAddress: Address): AddressModel {
   const parts: string[] = [];
 
   if (pafAddress.organisationName) parts.push(pafAddress.organisationName);
-  if (pafAddress.departmentName)   parts.push(pafAddress.departmentName);
-  if (pafAddress.subBuildingName)  parts.push(pafAddress.subBuildingName);
-  if (pafAddress.buildingName)     parts.push(pafAddress.buildingName);
+  if (pafAddress.departmentName) parts.push(pafAddress.departmentName);
+  if (pafAddress.subBuildingName) parts.push(pafAddress.subBuildingName);
+  if (pafAddress.buildingName) parts.push(pafAddress.buildingName);
 
   if (pafAddress.poBox) {
     parts.push(`PO BOX ${pafAddress.poBox}`);
@@ -38,29 +38,29 @@ export function mapToAddressModel(pafAddress: Address): AddressModel {
   }
 
   if (pafAddress.doubleDependentLocality) parts.push(pafAddress.doubleDependentLocality);
-  if (pafAddress.dependentLocality)       parts.push(pafAddress.dependentLocality);
-  if (pafAddress.postTown)                parts.push(pafAddress.postTown);
-  if (pafAddress.postcode)                parts.push(pafAddress.postcode);
+  if (pafAddress.dependentLocality) parts.push(pafAddress.dependentLocality);
+  if (pafAddress.postTown) parts.push(pafAddress.postTown);
+  if (pafAddress.postcode) parts.push(pafAddress.postcode);
 
   return {
-    formattedAddress:        parts,
-    organisationName:        pafAddress.organisationName        || '',
-    departmentName:          pafAddress.departmentName          || '',
-    poBox:                   pafAddress.poBox                   || '',
-    subBuildingName:         pafAddress.subBuildingName         || '',
-    buildingName:            pafAddress.buildingName            || '',
-    buildingNumber:          pafAddress.buildingNumber          || '',
-    dependentThoroughfare:   pafAddress.dependentThoroughfare   || '',
-    thoroughfare:            pafAddress.thoroughfare            || '',
+    formattedAddress: parts,
+    organisationName: pafAddress.organisationName || '',
+    departmentName: pafAddress.departmentName || '',
+    poBox: pafAddress.poBox || '',
+    subBuildingName: pafAddress.subBuildingName || '',
+    buildingName: pafAddress.buildingName || '',
+    buildingNumber: pafAddress.buildingNumber || '',
+    dependentThoroughfare: pafAddress.dependentThoroughfare || '',
+    thoroughfare: pafAddress.thoroughfare || '',
     doubleDependentLocality: pafAddress.doubleDependentLocality || '',
-    dependentLocality:       pafAddress.dependentLocality       || '',
-    postTown:                pafAddress.postTown                || '',
-    postcode:                pafAddress.postcode                || '',
-    postcodeType:            pafAddress.postcodeType            || '',
+    dependentLocality: pafAddress.dependentLocality || '',
+    postTown: pafAddress.postTown || '',
+    postcode: pafAddress.postcode || '',
+    postcodeType: pafAddress.postcodeType || '',
     suOrganisationIndicator: pafAddress.suOrganisationIndicator || '',
-    deliveryPointSuffix:     pafAddress.deliveryPointSuffix     || '',
-    udprn:                   pafAddress.udprn                   || '',
-    umprn:                   '',
+    deliveryPointSuffix: pafAddress.deliveryPointSuffix || '',
+    udprn: pafAddress.udprn || '',
+    umprn: '',
   };
 }
 
@@ -102,22 +102,22 @@ export function mapMRToAddressModel(parent: Address, mr: MRRecord): AddressModel
   // Build a synthetic Address that merges MR unit info with parent street-level data,
   // then reuse the existing formatting logic in mapToAddressModel.
   const synthetic: Address = {
-    postcode:                parent.postcode,
-    postTown:                parent.postTown,
-    dependentLocality:       parent.dependentLocality,
+    postcode: parent.postcode,
+    postTown: parent.postTown,
+    dependentLocality: parent.dependentLocality,
     doubleDependentLocality: parent.doubleDependentLocality,
-    thoroughfare:            parent.thoroughfare,
-    dependentThoroughfare:   parent.dependentThoroughfare,
-    buildingNumber:          parent.buildingNumber, // Owning DP's door number
-    buildingName:            syntheticBuilding,
-    subBuildingName:         syntheticSubBuilding,
-    poBox:                   parent.poBox,
-    departmentName:          parent.departmentName,
-    organisationName:        parent.organisationName,
-    udprn:                   parent.udprn,
-    postcodeType:            parent.postcodeType,
+    thoroughfare: parent.thoroughfare,
+    dependentThoroughfare: parent.dependentThoroughfare,
+    buildingNumber: parent.buildingNumber, // Owning DP's door number
+    buildingName: syntheticBuilding,
+    subBuildingName: syntheticSubBuilding,
+    poBox: parent.poBox,
+    departmentName: parent.departmentName,
+    organisationName: parent.organisationName,
+    udprn: parent.udprn,
+    postcodeType: parent.postcodeType,
     suOrganisationIndicator: parent.suOrganisationIndicator,
-    deliveryPointSuffix:     parent.deliveryPointSuffix,
+    deliveryPointSuffix: parent.deliveryPointSuffix,
   };
 
   const model = mapToAddressModel(synthetic);

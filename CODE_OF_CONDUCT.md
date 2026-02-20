@@ -76,7 +76,8 @@ communicate reasons for moderation decisions when appropriate.
 If you experience or witness unacceptable behaviour, or have any other concerns,
 please report it by contacting:
 
-1. **Project Owners**: See [CODEOWNER.md](CODEOWNER.md) for current owner contacts
+1. **Project Owners**: See [CODEOWNER.md](CODEOWNER.md) for current owner
+   contacts
 2. **Email**: conduct@company.com (monitored by HR and project leadership)
 3. **Direct Message**: Any project owner in Slack
 
@@ -159,8 +160,8 @@ As an open source project:
 
 - We operate with **trust and transparency**
 - We encourage **healthy debate** while remaining respectful
-- We recognise that contributors come from **different backgrounds with different
-  priorities**
+- We recognise that contributors come from **different backgrounds with
+  different priorities**
 - We **assume good intent** and seek to understand before judging
 - We value **collaboration over competition**
 

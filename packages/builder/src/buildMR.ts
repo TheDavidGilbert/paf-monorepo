@@ -116,12 +116,7 @@ function parseCsvLine(line: string): string[] {
  * Format: [4 × uint16 field lengths (8 bytes)] + [variable UTF-8 payloads]
  */
 function encodeMRRow(row: MRRow): Buffer {
-  const fieldValues = [
-    row.buildingNumber,
-    row.buildingName,
-    row.subBuildingName,
-    row.umprn,
-  ];
+  const fieldValues = [row.buildingNumber, row.buildingName, row.subBuildingName, row.umprn];
 
   const fieldBuffers = fieldValues.map((v) => Buffer.from(v, 'utf-8'));
   const lengths = fieldBuffers.map((b) => b.length);
@@ -186,10 +181,12 @@ export async function buildMRIndex(
       umprn: tokens[COL_UMPRN] ?? '',
     };
 
-    if (!udprnMap.has(udprn8)) {
-      udprnMap.set(udprn8, []);
+    let rowList = udprnMap.get(udprn8);
+    if (!rowList) {
+      rowList = [];
+      udprnMap.set(udprn8, rowList);
     }
-    udprnMap.get(udprn8)!.push(row);
+    rowList.push(row);
     linesRead++;
   }
 
@@ -226,7 +223,7 @@ export async function buildMRIndex(
   let rowIndex = 0;
 
   for (const udprn8 of sortedUdprns) {
-    const rows = udprnMap.get(udprn8)!;
+    const rows = udprnMap.get(udprn8) ?? [];
     udprnStartArr.push(rowIndex);
 
     for (const row of rows) {
