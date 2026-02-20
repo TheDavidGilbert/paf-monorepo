@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+out
+build
+*.js.map
+*.d.ts
+
+# Coverage
+coverage
+.nyc_output
+
+# Binary files
+*.bin
+packages/api/data/*.bin
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Misc
+.git
+.env
+.env.*

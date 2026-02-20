@@ -1,0 +1,59 @@
+{
+  "fields": [
+    {
+      "csvIndex": 0,
+      "csvName": "Postcode",
+      "key": "postcode"
+    },
+    {
+      "csvIndex": 1,
+      "csvName": "Post Town",
+      "key": "postTown"
+    },
+    {
+      "csvIndex": 2,
+      "csvName": "Dependent Locality",
+      "key": "dependentLocality"
+    },
+    {
+      "csvIndex": 3,
+      "csvName": "Double Dependent Locality",
+      "key": "doubleDependentLocality"
+    },
+    {
+      "csvIndex": 4,
+      "csvName": "Thoroughfare & Descriptor",
+      "key": "thoroughfare"
+    },
+    {
+      "csvIndex": 5,
+      "csvName": "Dependent Thoroughfare & Descriptor",
+      "key": "dependentThoroughfare"
+    },
+    {
+      "csvIndex": 6,
+      "csvName": "Building Number",
+      "key": "buildingNumber"
+    },
+    {
+      "csvIndex": 7,
+      "csvName": "Building Name",
+      "key": "buildingName"
+    },
+    {
+      "csvIndex": 8,
+      "csvName": "Sub Building Name",
+      "key": "subBuildingName"
+    },
+    {
+      "csvIndex": 12,
+      "csvName": "UDPRN",
+      "key": "udprn"
+    },
+    {
+      "csvIndex": 15,
+      "csvName": "Delivery Point Suffix",
+      "key": "deliveryPointSuffix"
+    }
+  ]
+}
