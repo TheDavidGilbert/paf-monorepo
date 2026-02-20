@@ -15,6 +15,12 @@ packages/api/data/*.json
 # Royal Mail CSV input files (all subdirectories)
 packages/builder/input/**/*.csv
 
+# PAF documentation (proprietary, not for public distribution)
+paf-documentation/
+
+# Claude Code worktrees and session data
+.claude/
+
 # Keep directory structure
 !packages/builder/input/.gitkeep
 !packages/api/data/.gitkeep

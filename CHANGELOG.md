@@ -64,9 +64,7 @@ and this project adheres to
 ### Changed
 
 - **License updated to MIT**: Changed to open source MIT license for public use
-- Removed ATG Entertainment references and made project fully open source
 - CORS configuration now defaults to localhost only with documentation for adding custom domains
-- Renamed OWNER.md to CODEOWNER.md to satisfy Cycode security scan requirements
 - Updated all documentation references from OWNER.md to CODEOWNER.md across:
   - README.md, CHANGELOG.md, CODE_OF_CONDUCT.md, CONSUMER.md, CONTRIBUTOR.md, HOSTING.md
   - .github/pull_request_template.md
