@@ -21,13 +21,28 @@ const mockDecodeRow = jest.fn((index: number) => ({
   buildingNumber: String(index * 10),
   buildingName: '',
   subBuildingName: '',
+  poBox: '',
+  departmentName: '',
+  organisationName: '',
   udprn: String(12345 + index),
+  postcodeType: 'S',
+  suOrganisationIndicator: '',
   deliveryPointSuffix: '1A',
 }));
 
 jest.unstable_mockModule('../dataset.js', () => ({
   findPostcodeRange: mockFindPostcodeRange,
   decodeRow: mockDecodeRow,
+  // MR functions — return no-MR-data defaults (simulates a PAF-only build)
+  hasMRData: jest.fn(() => false),
+  findMRRange: jest.fn(() => null),
+  padUdprn: jest.fn((u: string) => u.padStart(8, '0')),
+  decodeMRRow: jest.fn(() => ({
+    buildingNumber: '',
+    buildingName: '',
+    subBuildingName: '',
+    umprn: '',
+  })),
 }));
 
 const { lookupRoute } = await import('./lookup.js');
@@ -44,47 +59,10 @@ describe('lookupRoute', () => {
     await app.close();
   });
 
-  it('should return 422 for unsupported country', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: '/address?country=US&postcode=12345',
-    });
-
-    expect(response.statusCode).toBe(422);
-    const body = JSON.parse(response.body) as SearchResponse;
-    expect(body.message).toContain('Unsupported country');
-    expect(body.code).toBe(422);
-  });
-
-  it('should accept UK as a valid country code synonym for GB', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: '/address?country=UK&postcode=PL1%201LR',
-    });
-
-    expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body) as SearchResponse;
-    expect(body.status).toBe(200);
-    expect(body.countryCode).toBe('GB');
-    expect(body.country).toBe('United Kingdom');
-    expect(body.results).toHaveLength(2);
-  });
-
-  it('should accept lowercase uk as a valid country code', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: '/address?country=uk&postcode=PL1%201LR',
-    });
-
-    expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body) as SearchResponse;
-    expect(body.countryCode).toBe('GB');
-  });
-
   it('should return 400 when postcode is missing', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB',
+      url: '/lookup/postcode',
     });
 
     expect(response.statusCode).toBe(400);
@@ -95,7 +73,7 @@ describe('lookupRoute', () => {
   it('should return 200 for test status code XXX X200', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=XXX%20X200',
+      url: '/lookup/postcode?postcode=XXX%20X200',
     });
 
     expect(response.statusCode).toBe(200);
@@ -108,7 +86,7 @@ describe('lookupRoute', () => {
   it('should return 404 for test status code XXXX404', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=XXXX404',
+      url: '/lookup/postcode?postcode=XXXX404',
     });
 
     expect(response.statusCode).toBe(404);
@@ -120,7 +98,7 @@ describe('lookupRoute', () => {
   it('should return 400 for test status code XXX X400', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=XXX%20X400',
+      url: '/lookup/postcode?postcode=XXX%20X400',
     });
 
     expect(response.statusCode).toBe(400);
@@ -131,7 +109,7 @@ describe('lookupRoute', () => {
   it('should return 422 for test status code XXXX422', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=XXXX422',
+      url: '/lookup/postcode?postcode=XXXX422',
     });
 
     expect(response.statusCode).toBe(422);
@@ -142,7 +120,7 @@ describe('lookupRoute', () => {
   it('should return 400 for invalid UK postcode format', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=INVALID',
+      url: '/lookup/postcode?postcode=INVALID',
     });
 
     expect(response.statusCode).toBe(400);
@@ -153,7 +131,7 @@ describe('lookupRoute', () => {
   it('should return 200 with addresses for valid postcode', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=PL1%201LR',
+      url: '/lookup/postcode?postcode=PL1%201LR',
     });
 
     expect(response.statusCode).toBe(200);
@@ -170,7 +148,7 @@ describe('lookupRoute', () => {
   it('should return 404 for valid format but non-existent postcode', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=SW1A%201AA',
+      url: '/lookup/postcode?postcode=SW1A%201AA',
     });
 
     expect(response.statusCode).toBe(404);
@@ -181,7 +159,7 @@ describe('lookupRoute', () => {
   it('should handle postcodes without spaces', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=PL11LR',
+      url: '/lookup/postcode?postcode=PL11LR',
     });
 
     expect(response.statusCode).toBe(200);
@@ -192,10 +170,21 @@ describe('lookupRoute', () => {
   it('should include fullAddress flag as true', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=PL1%201LR',
+      url: '/lookup/postcode?postcode=PL1%201LR',
     });
 
     const body = JSON.parse(response.body) as SearchResponse;
     expect(body.fullAddress).toBe(true);
+  });
+
+  it('should always return countryCode GB and United Kingdom', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/lookup/postcode?postcode=PL1%201LR',
+    });
+
+    const body = JSON.parse(response.body) as SearchResponse;
+    expect(body.countryCode).toBe('GB');
+    expect(body.country).toBe('United Kingdom');
   });
 });

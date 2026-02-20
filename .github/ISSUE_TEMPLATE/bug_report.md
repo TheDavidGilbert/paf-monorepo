@@ -31,7 +31,7 @@ What actually happened instead.
 **Request:**
 
 ```bash
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
 ```
 
 **Response:**

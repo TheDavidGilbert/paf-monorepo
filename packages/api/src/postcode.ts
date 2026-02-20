@@ -24,3 +24,16 @@ export function normalisePostcodeForKey(postcode: string): string {
   const padded = upper.padEnd(7, ' ');
   return padded.slice(0, 7);
 }
+
+/**
+ * Convert a 7-byte postcode key back to a human-readable UK postcode string.
+ * The inward code (last 3 chars of the trimmed key) is separated from the
+ * outward code by a single space.
+ * e.g. "SW1A1AA" → "SW1A 1AA", "PL11LR " → "PL1 1LR"
+ */
+export function formatPostcodeKey(key7: string): string {
+  const trimmed = key7.trimEnd();
+  const inward = trimmed.slice(-3);
+  const outward = trimmed.slice(0, -3);
+  return `${outward} ${inward}`;
+}

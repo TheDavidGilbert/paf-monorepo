@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-02-20
 
 ### Added
 
@@ -44,18 +44,13 @@ and this project adheres to
 - RUNBOOK.md with operational procedures including:
   - Service restart and rollback procedures
   - Dataset update guide (step-by-step for 40M record updates)
-  - Incident response playbooks (P1/P2/P3)
   - Troubleshooting guide for common issues
-  - Scaling operations and monitoring
 - HOSTING.md with performance characteristics and hosting recommendations for
   memory-intensive deployment
   - AWS-specific infrastructure recommendations (ECS/EKS with r6g.xlarge
     instances)
-  - Production sizing for 40 million Royal Mail PAF records (12 GB RAM
-    requirement)
+  - Production sizing for 40 million Royal Mail PAF records (~9 GB RAM)
   - Container resource configurations for development and production
-  - Auto-scaling strategies and load balancing setup
-  - Monitoring and alerting guidelines
 - Production readiness features:
   - Graceful shutdown handling (SIGTERM/SIGINT)
   - Enhanced health checks with separate liveness (`/health/live`) and readiness
@@ -108,7 +103,7 @@ and this project adheres to
 - Tracked coverage files from git (38 files from packages/api/coverage and packages/builder/coverage)
 - Coverage artifacts now regenerated on test runs and properly ignored
 
-## [1.0.0] - 2026-02-07
+## [0.1.0] - 2026-02-07
 
 ### Added
 
@@ -193,8 +188,8 @@ See [CONTRIBUTOR.md](CONTRIBUTOR.md) for details.
 
 ## Links
 
-- [Project Repository](https://github.com/your-org/paf-monorepo)
-- [Issue Tracker](https://github.com/your-org/paf-monorepo/issues)
+- [Project Repository](https://github.com/TheDavidGilbert/paf-monorepo)
+- [Issue Tracker](https://github.com/TheDavidGilbert/paf-monorepo/issues)
 - [API Documentation](CONSUMER.md)
 - [Contribution Guide](CONTRIBUTOR.md)
 - [Ownership Guide](CODEOWNER.md)

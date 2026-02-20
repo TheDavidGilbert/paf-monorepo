@@ -1,12 +1,11 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { isValidUkPostcode, normalisePostcodeForKey } from '../postcode.js';
-import { findPostcodeRange, decodeRow, findMRRange, decodeMRRow, padUdprn } from '../dataset.js';
+import { findPostcodeRange, decodeRow, findMRRange, decodeMRRow, padUdprn, hasMRData } from '../dataset.js';
 import { createSearchResponse } from '../models/searchResponse.js';
 import { mapToAddressModel, mapMRToAddressModel } from '../mappers/addressMapper.js';
 
 interface QueryParams {
-  country?: string;
   postcode?: string;
 }
 
@@ -33,41 +32,25 @@ function getTestStatusCode(postcode: string): number | null {
 }
 
 export function lookupRoute(fastify: FastifyInstance): void {
-  fastify.get('/address', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { country, postcode } = request.query as QueryParams;
+  fastify.get('/lookup/postcode', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { postcode } = request.query as QueryParams;
 
     // Set cache headers for successful lookups
     // Dataset rarely changes, safe to cache for 24 hours
     const setCacheHeaders = (status: number) => {
       if (status === 200 || status === 404) {
-        // Cache successful and not-found responses for 24 hours
         reply.header('Cache-Control', 'public, max-age=86400, must-revalidate');
         reply.header('Vary', 'Accept-Encoding');
       } else {
-        // Don't cache error responses
         reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
       }
     };
-
-    // Validate country and normalize UK to GB
-    let normalizedCountry = country?.toUpperCase();
-    if (!normalizedCountry || (normalizedCountry !== 'GB' && normalizedCountry !== 'UK')) {
-      setCacheHeaders(422);
-      const response = createSearchResponse(422, 422, 'Unsupported country');
-      response.countryCode = country ?? '';
-      return reply.status(422).send(response);
-    }
-    
-    // Normalize UK to GB for internal processing
-    if (normalizedCountry === 'UK') {
-      normalizedCountry = 'GB';
-    }
 
     // Validate postcode presence
     if (!postcode) {
       setCacheHeaders(400);
       const response = createSearchResponse(400, 400, 'Postcode is required');
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
       return reply.status(400).send(response);
     }
@@ -77,7 +60,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
       setCacheHeaders(400);
       const response = createSearchResponse(400, 400, 'Postcode exceeds maximum length');
       response.postCode = postcode.substring(0, 20) + '...'; // Truncate in response
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
       return reply.status(400).send(response);
     }
@@ -87,7 +70,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
       setCacheHeaders(400);
       const response = createSearchResponse(400, 400, 'Postcode contains invalid characters');
       response.postCode = postcode;
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
       return reply.status(400).send(response);
     }
@@ -111,7 +94,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
         messages[testStatusCode] || 'Test response'
       );
       response.postCode = postcode;
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
 
       // For 200 status, add mock address data
@@ -148,7 +131,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
       setCacheHeaders(400);
       const response = createSearchResponse(400, 400, 'Invalid UK postcode format');
       response.postCode = postcode;
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
       return reply.status(400).send(response);
     }
@@ -166,7 +149,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
       setCacheHeaders(404);
       const response = createSearchResponse(404, 404, 'Postcode not found');
       response.postCode = postcode;
-      response.countryCode = normalizedCountry;
+      response.countryCode = 'GB';
       response.country = 'United Kingdom';
       return reply.status(404).send(response);
     }
@@ -180,7 +163,8 @@ export function lookupRoute(fastify: FastifyInstance): void {
 
       // If this delivery point has Multiple Residence records, expand to individual units
       // and suppress the parent delivery point (per agreed behaviour).
-      if (pafAddress.udprn) {
+      // hasMRData() guard avoids the binary search entirely when MR files were not built.
+      if (pafAddress.udprn && hasMRData()) {
         const mrRange = findMRRange(padUdprn(pafAddress.udprn));
         if (mrRange) {
           const [mrStart, mrEnd] = mrRange;
@@ -202,7 +186,7 @@ export function lookupRoute(fastify: FastifyInstance): void {
     setCacheHeaders(200);
     const response = createSearchResponse(200, 200, 'Success');
     response.postCode = postcode;
-    response.countryCode = normalizedCountry;
+    response.countryCode = 'GB';
     response.country = 'United Kingdom';
     response.results = addressModels;
 

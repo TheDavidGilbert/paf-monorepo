@@ -8,7 +8,12 @@ export interface Address {
   buildingNumber: string;
   buildingName: string;
   subBuildingName: string;
+  poBox: string;
+  departmentName: string;
+  organisationName: string;
   udprn: string;
+  postcodeType: string;
+  suOrganisationIndicator: string;
   deliveryPointSuffix: string;
 }
 

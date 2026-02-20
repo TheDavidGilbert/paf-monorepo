@@ -1,7 +1,6 @@
 # PAF Monorepo
 
-[![CI](https://github.com/YOUR-USERNAME/paf-monorepo/workflows/CI/badge.svg)](https://github.com/YOUR-USERNAME/paf-monorepo/actions)
-[![Tests](https://github.com/YOUR-USERNAME/paf-monorepo/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR-USERNAME/paf-monorepo/actions/workflows/ci.yml)
+[![CI](https://github.com/TheDavidGilbert/paf-monorepo/actions/workflows/ci.yml/badge.svg)](https://github.com/TheDavidGilbert/paf-monorepo/actions/workflows/ci.yml)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-9.0.0-orange)](https://pnpm.io/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
@@ -15,9 +14,10 @@ data and serving postcode lookups via a REST API.
 
 ## Documentation
 
+- **[openapi.yaml](openapi.yaml)** - OpenAPI 3.1 specification (import into
+  Postman, Swagger UI, Redoc, or any OpenAPI-compatible tool)
 - **[CONSUMER.md](CONSUMER.md)** - API integration guide for service consumers
-- **[CONTRIBUTOR.md](CONTRIBUTOR.md)** - How to contribute to this innersource
-  project
+- **[CONTRIBUTOR.md](CONTRIBUTOR.md)** - How to contribute
 - **[CODEOWNER.md](CODEOWNER.md)** - Service ownership and maintenance guide
 - **[HOSTING.md](HOSTING.md)** - Performance and hosting
   requirements/recommendations
@@ -47,6 +47,8 @@ This project consists of two packages:
 ### Key Features
 
 - **Fast lookups**: Binary search on sorted postcodes with O(log m) complexity
+- **Prefix autocomplete**: `GET /lookup/autocomplete` returns matching postcodes
+  for partial input (e.g. "SW1A" or "SW1A 1")
 - **Compact storage**: Custom binary format optimised for memory efficiency
 - **Sorted results**: Addresses sorted by building number (alpha first, then
   numeric)
@@ -85,8 +87,10 @@ paf-monorepo/
     │   │   ├── checksum.ts
     │   │   └── io.ts
     │   ├── input/
-    │   │   └── CSV PAF/
-    │   │       └── CSV PAF.csv  (place your main PAF CSV here)
+    │   │   ├── CSV PAF/
+    │   │   │   └── CSV PAF.csv          (required: main PAF delivery points)
+    │   │   └── CSV MULRES/
+    │   │       └── CSV Multiple Residence.csv  (optional: MR unit data)
     │   └── out/                        (default output directory)
     └── api/
         ├── package.json
@@ -97,7 +101,8 @@ paf-monorepo/
         │   ├── postcode.ts
         │   ├── types.ts
         │   └── routes/
-        │       └── lookup.ts
+        │       ├── lookup.ts
+        │       └── postcodes.ts
         └── data/                       (binary assets location)
 ```
 
@@ -110,16 +115,20 @@ cd paf-monorepo
 pnpm install
 ```
 
-### 2. Place your Royal Mail PAF CSV
+### 2. Place your Royal Mail PAF CSV files
 
-
-Place your main Royal Mail PAF CSV file at:
+Place your PAF CSV files in the builder input directory:
 
 ```
-packages/builder/input/CSV PAF/CSV PAF.csv
+packages/builder/input/CSV PAF/CSV PAF.csv               (required)
+packages/builder/input/CSV MULRES/CSV Multiple Residence.csv  (optional)
 ```
 
-The CSV should have the Royal Mail PAF standard format with columns:
+See [packages/builder/input/README.md](packages/builder/input/README.md) for
+full details on licensing requirements and file placement.
+
+The main PAF CSV uses the Royal Mail standard format. All 16 fields are
+extracted into the binary output:
 
 - Postcode (0)
 - Post Town (1)
@@ -130,12 +139,13 @@ The CSV should have the Royal Mail PAF standard format with columns:
 - Building Number (6)
 - Building Name (7)
 - Sub Building Name (8)
-- ... (other columns)
+- PO Box (9)
+- Department Name (10)
+- Organisation Name (11)
 - UDPRN (12)
-- ... (other columns)
+- Postcode Type (13) — `S` Small User / `L` Large User
+- SU Organisation Indicator (14)
 - Delivery Point Suffix (15)
-
-Only the columns listed above are retained in the binary output.
 
 ## Usage
 
@@ -150,8 +160,7 @@ pnpm build:builder
 This will:
 
 1. Read `packages/builder/input/CSV PAF/CSV PAF.csv`
-2. Extract the 11 B2C-relevant fields
-3. Generate binary files in `packages/api/data/`:
+2. Extract all 16 PAF fields and generate binary files in `packages/api/data/`:
    - `rows.bin` - Compact row store
    - `rowStart.bin` - Row offset index
    - `distinctPcKey.bin` - Distinct postcode keys (sorted)
@@ -159,6 +168,13 @@ This will:
    - `pcEnd.bin` - Postcode range end indexes
    - `schema.json` - Field schema
    - `meta.json` - Metadata with checksums
+3. If `packages/builder/input/CSV MULRES/CSV Multiple Residence.csv` is present,
+   also generate Multiple Residence binary files:
+   - `mrRows.bin` - MR unit row store
+   - `mrRowStart.bin` - MR row offset index
+   - `mrUdprn.bin` - Sorted UDPRN keys
+   - `mrStart.bin` - MR range start indexes per UDPRN
+   - `mrEnd.bin` - MR range end indexes per UDPRN
 
 #### Custom Builder Options
 
@@ -170,7 +186,7 @@ pnpm --filter @paf/builder build -- --input path/to/your.csv --out path/to/outpu
 
 Options:
 
-- `--input` (required): Path to the Royal Mail PAF CSV file
+- `--input` (optional): Path to the Royal Mail PAF CSV file (default: `packages/builder/input/CSV PAF/CSV PAF.csv`)
 - `--out` (optional): Output directory (default: `packages/api/data`)
 - `--version` (optional): Version string for metadata (default:
   `paf-YYYY-MM-DD`)
@@ -398,18 +414,17 @@ Returns detailed memory usage statistics including heap, process memory, heap sp
 ### Postcode Lookup
 
 ```bash
-GET /address?country=GB&postcode=<postcode>
+GET /lookup/postcode?postcode=<postcode>
 ```
 
 **Query Parameters:**
 
-- `country` (required): Must be `GB`
 - `postcode` (required): UK postcode (case-insensitive, optional space)
 
 **Example:**
 
 ```bash
-curl "http://localhost:3000/address?country=GB&postcode=PL1%201RZ"
+curl "http://localhost:3000/lookup/postcode?postcode=PL1%201RZ"
 ```
 
 **Response Format:**
@@ -432,22 +447,24 @@ address lookup consumers.
   "fullAddress": true,
   "results": [
     {
-      "buildingNumber": "0",
-      "buildingName": "",
+      "formattedAddress": ["0 TEST STREET", "PLYMOUTH", "PL1 1RZ"],
+      "organisationName": "",
+      "departmentName": "",
+      "poBox": "",
       "subBuildingName": "",
-      "thoroughfare": "TEST STREET",
+      "buildingName": "",
+      "buildingNumber": "0",
       "dependentThoroughfare": "",
-      "dependentLocality": "",
+      "thoroughfare": "TEST STREET",
       "doubleDependentLocality": "",
-      "townOrCity": "PLYMOUTH",
-      "county": "",
+      "dependentLocality": "",
+      "postTown": "PLYMOUTH",
       "postcode": "PL1 1RZ",
-      "udprn": "12345678",
+      "postcodeType": "S",
+      "suOrganisationIndicator": "",
       "deliveryPointSuffix": "1A",
-      "line1": "0 TEST STREET",
-      "line2": "",
-      "line3": "",
-      "formattedAddress": ["0 TEST STREET", "PLYMOUTH", "PL1 1RZ"]
+      "udprn": "12345678",
+      "umprn": ""
     }
   ]
 }
@@ -468,8 +485,8 @@ values first (e.g., "A", "B"), followed by numeric values in ascending order
     "message": "Invalid UK postcode format",
     "provider": "PAF",
     "postCode": "",
-    "countryCode": "",
-    "country": "",
+    "countryCode": "GB",
+    "country": "United Kingdom",
     "fullAddress": true,
     "results": []
   }
@@ -484,25 +501,56 @@ values first (e.g., "A", "B"), followed by numeric values in ascending order
     "message": "Postcode not found",
     "provider": "PAF",
     "postCode": "",
-    "countryCode": "",
-    "country": "",
+    "countryCode": "GB",
+    "country": "United Kingdom",
     "fullAddress": true,
     "results": []
   }
   ```
 
-- **422 Unprocessable Entity** - Invalid country
+### Postcode Autocomplete
+
+```bash
+GET /lookup/autocomplete?q=<prefix>&limit=<n>
+```
+
+**Query Parameters:**
+
+- `q` (required): Postcode prefix, 2–7 alphanumeric characters (case-insensitive,
+  spaces stripped automatically)
+- `limit` (optional): Maximum results to return (1–100, default: 10)
+
+**Example:**
+
+```bash
+curl "http://localhost:3000/lookup/autocomplete?q=SW1A&limit=5"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": 200,
+  "query": "SW1A",
+  "countryCode": "GB",
+  "country": "United Kingdom",
+  "total": 2,
+  "results": ["SW1A 1AA", "SW1A 2AA"]
+}
+```
+
+**Note:** Results are cached for 1 hour. The query is normalised to uppercase
+with spaces removed before searching, so `"sw1a 1"` and `"SW1A1"` produce the
+same results.
+
+**Error Responses:**
+
+- **400 Bad Request** - Missing, too short, or invalid query
+
   ```json
   {
-    "status": 422,
-    "code": 422,
-    "message": "Unsupported country: US",
-    "provider": "PAF",
-    "postCode": "",
-    "countryCode": "",
-    "country": "",
-    "fullAddress": true,
-    "results": []
+    "status": 400,
+    "error": "Query must be at least 2 characters"
   }
   ```
 
@@ -638,17 +686,17 @@ curl http://localhost:3000/health
 # Memory statistics
 curl http://localhost:3000/health/memory
 
-# Valid lookup
-curl "http://localhost:3000/address?country=GB&postcode=PL1%201RZ"
-
-# Invalid country
-curl "http://localhost:3000/address?country=GB&postcode=US"
+# Valid postcode lookup
+curl "http://localhost:3000/lookup/postcode?postcode=PL1%201RZ"
 
 # Invalid postcode format
-curl "http://localhost:3000/address?country=GB&postcode=INVALID"
+curl "http://localhost:3000/lookup/postcode?postcode=INVALID"
 
 # Postcode not found
-curl "http://localhost:3000/address?country=GB&postcode=ZZ99%209ZZ"
+curl "http://localhost:3000/lookup/postcode?postcode=ZZ99%209ZZ"
+
+# Autocomplete prefix search
+curl "http://localhost:3000/lookup/autocomplete?q=PL1"
 ```
 
 ### Test Response Generation
@@ -663,22 +711,19 @@ digits)
 
 ```bash
 # Generate 200 OK with mock data
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X200"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X200"
 
 # Generate 404 Not Found
-curl "http://localhost:3000/address?country=GB&postcode=XXXX404"
+curl "http://localhost:3000/lookup/postcode?postcode=XXXX404"
 
 # Generate 400 Bad Request
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X400"
-
-# Generate 422 Unprocessable Entity
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X422"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X400"
 
 # Generate 500 Internal Server Error
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X500"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X500"
 
 # Generate 503 Service Unavailable
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X503"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X503"
 ```
 
 This feature is useful for testing error handling in client applications without

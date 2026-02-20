@@ -38,7 +38,7 @@ allowing injection of special characters that could cause regex DoS.
 Impact: High - Could cause service degradation or DoS
 
 Steps to Reproduce:
-1. Send request: curl "http://api/address?country=GB&postcode=SW1A((((((((((((1AA"
+1. Send request: curl "http://api/lookup/postcode?postcode=SW1A((((((((((((1AA"
 2. Server becomes unresponsive
 
 Proof of Concept:
