@@ -81,27 +81,27 @@ paths:
                 country: United Kingdom
                 fullAddress: true
                 results:
-                  - buildingNumber: '10'
-                    buildingName: ''
-                    subBuildingName: ''
-                    subBuildingNumber: ''
-                    thoroughfare: DOWNING STREET
-                    locality: ''
-                    townOrCity: LONDON
-                    county: ''
-                    district: ''
-                    state: ''
-                    stateCode: ''
-                    udprn: '12345678'
-                    umprn: ''
-                    line1: 10 Downing Street
-                    line2: ''
-                    line3: ''
-                    line4: ''
-                    formattedAddress:
-                      - 10 Downing Street
+                  - formattedAddress:
+                      - 10 DOWNING STREET
                       - LONDON
                       - SW1A 2AA
+                    organisationName: ''
+                    departmentName: ''
+                    poBox: ''
+                    subBuildingName: ''
+                    buildingName: ''
+                    buildingNumber: '10'
+                    dependentThoroughfare: ''
+                    thoroughfare: DOWNING STREET
+                    doubleDependentLocality: ''
+                    dependentLocality: ''
+                    postTown: LONDON
+                    postcode: SW1A 2AA
+                    postcodeType: S
+                    suOrganisationIndicator: ''
+                    deliveryPointSuffix: 1A
+                    udprn: '12345678'
+                    umprn: ''
         '400':
           description: Invalid or missing postcode
           headers:
