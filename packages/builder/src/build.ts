@@ -8,6 +8,7 @@ import { parseConfig } from './config.js';
 import { hasHeader, normalisePostcodeForKey } from './postcode.js';
 import { computeChecksum } from './checksum.js';
 import { writeUint16Array, writeUint32ArrayToFile } from './io.js';
+import { buildMRIndex } from './buildMR.js';
 
 interface FieldConfig {
   csvIndex: number;
@@ -268,8 +269,11 @@ async function main() {
     checksums[name] = await computeChecksum(path);
   }
 
+  // Build Multiple Residence index (optional — skipped if MR CSV not present)
+  const mrResult = await buildMRIndex(config.inputDir, config.outputDir);
+
   // Write meta.json
-  const meta = {
+  const meta: Record<string, unknown> = {
     version: config.version,
     builtAt: new Date().toISOString(),
     format: 'compact-rows/v1',
@@ -278,6 +282,15 @@ async function main() {
     fieldOrder: FIELDS.map((f) => f.key),
     checksums,
   };
+
+  if (mrResult) {
+    meta['mulRes'] = {
+      rows: mrResult.rows,
+      distinctUdprns: mrResult.distinctUdprns,
+      checksums: mrResult.checksums,
+    };
+  }
+
   writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
   checksums['meta.json'] = await computeChecksum(metaPath);
 
@@ -291,6 +304,14 @@ async function main() {
   console.log('  - pcEnd.bin');
   console.log('  - schema.json');
   console.log('  - meta.json');
+  if (mrResult) {
+    console.log('  - mrRows.bin');
+    console.log('  - mrRowStart.bin');
+    console.log('  - mrUdprn.bin');
+    console.log('  - mrStart.bin');
+    console.log('  - mrEnd.bin');
+    console.log(`MR: ${mrResult.rows} rows across ${mrResult.distinctUdprns} UDPRNs`);
+  }
 }
 
 /**

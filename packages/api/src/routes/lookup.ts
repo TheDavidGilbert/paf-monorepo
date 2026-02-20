@@ -1,9 +1,9 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { isValidUkPostcode, normalisePostcodeForKey } from '../postcode.js';
-import { findPostcodeRange, decodeRow } from '../dataset.js';
+import { findPostcodeRange, decodeRow, findMRRange, decodeMRRow, padUdprn } from '../dataset.js';
 import { createSearchResponse } from '../models/searchResponse.js';
-import { mapToAddressModel } from '../mappers/addressMapper.js';
+import { mapToAddressModel, mapMRToAddressModel } from '../mappers/addressMapper.js';
 
 interface QueryParams {
   country?: string;
@@ -134,6 +134,8 @@ export function lookupRoute(fastify: FastifyInstance): void {
             district: '',
             state: '',
             stateCode: '',
+            udprn: '',
+            umprn: '',
           },
         ];
       }
@@ -169,16 +171,29 @@ export function lookupRoute(fastify: FastifyInstance): void {
       return reply.status(404).send(response);
     }
 
-    // Decode all rows in the range
+    // Decode all rows in the range and expand with MR data where available
     const [startRow, endRow] = range;
-    const pafAddresses = [];
+    const addressModels = [];
 
     for (let i = startRow; i < endRow; i++) {
-      pafAddresses.push(decodeRow(i));
-    }
+      const pafAddress = decodeRow(i);
 
-    // Map to AddressModel format
-    const addressModels = pafAddresses.map(mapToAddressModel);
+      // If this delivery point has Multiple Residence records, expand to individual units
+      // and suppress the parent delivery point (per agreed behaviour).
+      if (pafAddress.udprn) {
+        const mrRange = findMRRange(padUdprn(pafAddress.udprn));
+        if (mrRange) {
+          const [mrStart, mrEnd] = mrRange;
+          for (let j = mrStart; j < mrEnd; j++) {
+            addressModels.push(mapMRToAddressModel(pafAddress, decodeMRRow(j)));
+          }
+          continue; // Parent DP suppressed
+        }
+      }
+
+      // No MR data — return the standard PAF address
+      addressModels.push(mapToAddressModel(pafAddress));
+    }
 
     // Log lookup request
     console.log(JSON.stringify({ postcode: key7.trim(), count: addressModels.length, found: true }));
