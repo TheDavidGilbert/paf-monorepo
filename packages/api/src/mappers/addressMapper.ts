@@ -1,4 +1,4 @@
-import type { Address } from '../types.js';
+import type { Address, MRRecord } from '../types.js';
 import type { AddressModel } from '../models/addressModel.js';
 
 /**
@@ -92,5 +92,67 @@ export function mapToAddressModel(pafAddress: Address): AddressModel {
     district: '', // Not in PAF basic data
     state: '', // Not applicable for UK
     stateCode: '', // Not applicable for UK
+    udprn: pafAddress.udprn || '',
+    umprn: '', // Standard PAF records have no UMPRN
   };
+}
+
+/**
+ * Map a Multiple Residence record + its parent PAF address to an AddressModel.
+ *
+ * The MR record provides the individual unit identity (e.g. "FLAT 1").
+ * The parent address provides the delivery-point-level fields (street, town, postcode).
+ *
+ * Mapping strategy:
+ *   - If mr.subBuildingName is set: use it as subBuildingName, mr.buildingName as buildingName
+ *   - If only mr.buildingName is set: use it as subBuildingName, parent.buildingName as buildingName
+ *   - If only mr.buildingNumber is set: use it as subBuildingName
+ *   - buildingNumber always inherited from parent (the owning delivery point)
+ *   - All locality / town / postcode fields inherited from parent
+ */
+export function mapMRToAddressModel(parent: Address, mr: MRRecord): AddressModel {
+  let syntheticSubBuilding: string;
+  let syntheticBuilding: string;
+
+  if (mr.subBuildingName) {
+    // Most granular case: both subBuilding and building present on MR record
+    syntheticSubBuilding = mr.subBuildingName;
+    syntheticBuilding = mr.buildingName || parent.buildingName;
+  } else if (mr.buildingName) {
+    // Common case: MR buildingName is the flat/unit identifier (e.g. "FLAT 1")
+    syntheticSubBuilding = mr.buildingName;
+    syntheticBuilding = parent.buildingName;
+  } else if (mr.buildingNumber) {
+    // Unit identified by number only (e.g. "2")
+    syntheticSubBuilding = mr.buildingNumber;
+    syntheticBuilding = parent.buildingName;
+  } else {
+    // Fallback: no usable MR identifier, use parent fields unchanged
+    syntheticSubBuilding = parent.subBuildingName;
+    syntheticBuilding = parent.buildingName;
+  }
+
+  // Build a synthetic Address that merges MR unit info with parent street-level data,
+  // then reuse the existing formatting logic in mapToAddressModel.
+  const synthetic: Address = {
+    postcode: parent.postcode,
+    postTown: parent.postTown,
+    dependentLocality: parent.dependentLocality,
+    doubleDependentLocality: parent.doubleDependentLocality,
+    thoroughfare: parent.thoroughfare,
+    dependentThoroughfare: parent.dependentThoroughfare,
+    buildingNumber: parent.buildingNumber, // Owning DP's door number
+    buildingName: syntheticBuilding,
+    subBuildingName: syntheticSubBuilding,
+    udprn: parent.udprn,
+    deliveryPointSuffix: parent.deliveryPointSuffix,
+  };
+
+  const model = mapToAddressModel(synthetic);
+
+  // Override identifiers: keep parent UDPRN, add MR's UMPRN
+  model.udprn = parent.udprn;
+  model.umprn = mr.umprn;
+
+  return model;
 }
