@@ -5,9 +5,16 @@ coverage/
 .DS_Store
 .env
 .env.local
+# Builder output directory
 packages/builder/out/
+
+# API generated binary data files
 packages/api/data/*.bin
 packages/api/data/*.json
-packages/builder/input/*.csv
+
+# Royal Mail CSV input files (all subdirectories)
+packages/builder/input/**/*.csv
+
+# Keep directory structure
 !packages/builder/input/.gitkeep
 !packages/api/data/.gitkeep
