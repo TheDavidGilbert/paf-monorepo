@@ -15,4 +15,8 @@ export interface AddressModel {
   district: string;
   state: string;
   stateCode: string;
+  /** UDPRN for standard PAF records; empty string for non-PAF sources. */
+  udprn: string;
+  /** UMPRN for Multiple Residence records; empty string for standard PAF records. */
+  umprn: string;
 }

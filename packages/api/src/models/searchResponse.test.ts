@@ -55,6 +55,8 @@ describe('createSearchResponse', () => {
       district: '',
       state: '',
       stateCode: '',
+      udprn: '',
+      umprn: '',
     });
 
     expect(response.results).toHaveLength(1);

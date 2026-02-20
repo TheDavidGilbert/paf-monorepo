@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 
-import { loadDataset, getDataset } from './dataset.js';
+import { loadDataset, loadMRDataset, getDataset } from './dataset.js';
 import { lookupRoute } from './routes/lookup.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,6 +42,9 @@ fastify.get('/health', async (request, reply) => {
         rows: ds.meta.rows,
         distinctPostcodes: ds.meta.distinctPostcodes,
         builtAt: ds.meta.builtAt,
+        mulRes: ds.meta.mulRes
+          ? { rows: ds.meta.mulRes.rows, distinctUdprns: ds.meta.mulRes.distinctUdprns }
+          : null,
       },
       memory: {
         heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
@@ -166,6 +169,13 @@ try {
 } catch (err) {
   console.error('Failed to load dataset:', err);
   process.exit(1);
+}
+
+// Load Multiple Residence dataset if available (non-fatal if absent)
+try {
+  loadMRDataset(DATA_DIR);
+} catch (err) {
+  console.warn('MR dataset load failed (non-fatal):', err);
 }
 
 // Start server
