@@ -1,0 +1,19 @@
+{
+  "name": "@paf/builder",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Royal Mail PAF binary builder",
+  "scripts": {
+    "build": "tsc && node dist/build.js --out ../../packages/api/data",
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  }
+}

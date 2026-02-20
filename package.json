@@ -1,0 +1,38 @@
+{
+  "name": "paf-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Royal Mail PAF builder and API monorepo",
+  "scripts": {
+    "build:builder": "pnpm --filter @paf/builder build",
+    "dev:api": "pnpm --filter @paf/api dev",
+    "start:api": "pnpm --filter @paf/api start",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "jest": "^30.2.0",
+    "prettier": "^3.4.2",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.18.2"
+  }
+}
