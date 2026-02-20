@@ -11,7 +11,7 @@ operational guidelines for deploying the PAF Address Lookup Service.
 - [Hosting Recommendations](#hosting-recommendations)
 - [Scaling Strategy](#scaling-strategy)
 - [Configuration Guidelines](#configuration-guidelines)
-- [Monitoring & Health Checks](#monitoring--health-checks)
+- [Health Check Endpoints](#health-check-endpoints)
 - [Performance Tuning](#performance-tuning)
 - [Load Testing](#load-testing)
 - [Troubleshooting](#troubleshooting)
@@ -39,19 +39,21 @@ Current dataset (Royal Mail PAF sample):
 
 - **Addresses**: 584,266
 - **Postcodes**: 37,150
-- **Binary files**: 3 files (addresses.bin, postcodes.bin, offsets.bin)
+- **Binary files**: `rows.bin`, `rowStart.bin`, `distinctPcKey.bin`,
+  `pcStart.bin`, `pcEnd.bin`, `schema.json`, `meta.json` (+ MR files if Multiple
+  Residence data is present)
 
 ### Memory Footprint
 
-**Minimum Requirements:**
+**Minimum Requirements (sample dataset):**
 
-| Component            | Memory     | Notes                      |
-| -------------------- | ---------- | -------------------------- |
-| Node.js runtime      | 50 MB      | Base V8 heap               |
-| Dataset binary files | 180 MB     | Loaded into memory         |
-| Fastify framework    | 20 MB      | HTTP server overhead       |
-| Heap headroom        | 100 MB     | GC and temporary objects   |
-| **Total minimum**    | **350 MB** | Bare minimum for operation |
+| Component            | Memory     | Notes                             |
+| -------------------- | ---------- | --------------------------------- |
+| Node.js runtime      | 50 MB      | Base V8 heap                      |
+| Dataset binary files | 55 MB      | Sample dataset loaded into memory |
+| Fastify framework    | 20 MB      | HTTP server overhead              |
+| Heap headroom        | 100 MB     | GC and temporary objects          |
+| **Total minimum**    | **230 MB** | Bare minimum for sample dataset   |
 
 **Recommended Allocation:**
 
@@ -63,18 +65,21 @@ Current dataset (Royal Mail PAF sample):
 
 ### Full PAF Dataset Projections
 
-Production deployment with complete Royal Mail PAF data:
+Production deployment with complete Royal Mail PAF data (16 fields including B2B
+fields):
 
 | Dataset Size                          | Estimated RAM | Recommended Allocation |
 | ------------------------------------- | ------------- | ---------------------- |
-| 1 million addresses                   | 350 MB        | 1 GB                   |
-| 10 million addresses                  | 2 GB          | 4 GB                   |
-| 30 million addresses                  | 6 GB          | 8 GB                   |
-| **40 million addresses (Production)** | **8 GB**      | **12 GB**              |
+| 1 million addresses                   | 400 MB        | 1 GB                   |
+| 10 million addresses                  | 2.2 GB        | 4 GB                   |
+| 30 million addresses                  | 6.5 GB        | 9 GB                   |
+| **40 million addresses (Production)** | **9 GB**      | **12 GB**              |
 
 > **Note**: Production deployment will use the complete Royal Mail PAF with **40
-> million records**. These are estimates - always measure actual memory usage
-> with your specific dataset using `process.memoryUsage()`.
+> million records**. The full dataset contains significantly more commercial
+> addresses (organisation names, department names, PO Boxes) than the sample,
+> which increases average row size. These are estimates — always measure actual
+> memory usage with your specific dataset using `process.memoryUsage()`.
 
 ## Performance Characteristics
 
@@ -157,8 +162,8 @@ resources:
 
 ### AWS Hosting Recommendations
 
-> **Note**: These are example hosting options. You can deploy this service to any
-> infrastructure that meets the memory requirements.
+> **Note**: These are example hosting options. You can deploy this service to
+> any infrastructure that meets the memory requirements.
 
 #### EC2 Instance Types (Examples)
 
@@ -402,30 +407,7 @@ By default, only `localhost` is allowed. Update the CORS configuration in
 [packages/api/src/server.ts](packages/api/src/server.ts) to add your own
 domains. See README for examples.
 
-## Monitoring & Health Checks
-
-### Key Metrics
-
-**Application Metrics:**
-
-| Metric           | Threshold    | Action                     |
-| ---------------- | ------------ | -------------------------- |
-| Memory RSS       | > 1.6 GB     | Alert - possible leak      |
-| Memory Heap Used | > 600 MB     | Monitor - may need scaling |
-| Event Loop Lag   | > 100 ms     | Alert - CPU bound          |
-| Request Rate     | > 8000 req/s | Scale out                  |
-| Error Rate       | > 1%         | Alert - investigate        |
-| p99 Latency      | > 50 ms      | Scale out or investigate   |
-
-**System Metrics:**
-
-| Metric         | Threshold | Action               |
-| -------------- | --------- | -------------------- |
-| CPU Usage      | > 70%     | Scale out            |
-| Disk Usage     | > 80%     | Clean logs or expand |
-| Network Errors | > 0.1%    | Check network health |
-
-### Health Check Endpoints
+## Health Check Endpoints
 
 **Liveness Probe** (is the container alive?):
 
@@ -501,49 +483,6 @@ readinessProbe:
   timeoutSeconds: 5
   failureThreshold: 3
 ```
-
-### Monitoring Setup
-
-> **Note**: You should configure logging and monitoring for your deployment.
-> This section defines recommended metrics to collect.
-
-**Metrics to Expose:**
-
-The application provides basic health metrics via `/health` endpoint. You
-should configure:
-
-- **Metrics Collection**: CPU, memory, network, request count
-- **APM Integration**: Application-level metrics (response times, error rates)
-- **Log Aggregation**: Structured JSON logs to your logging platform
-
-**Recommended Dashboards:**
-
-1. **Request Overview**: Request rate, error rate, latency percentiles
-2. **Resource Usage**: CPU, memory, event loop lag
-3. **Business Metrics**: Successful lookups, not found rate, invalid requests
-4. **Errors**: 4xx/5xx breakdown, stack traces
-
-### Alerting Rules
-
-> **Note**: Configure these alerts in your monitoring platform of choice.
-
-**Critical Alerts** (immediate action required):
-
-| Alert            | Condition             | Threshold              | Action       |
-| ---------------- | --------------------- | ---------------------- | ------------ |
-| ServiceDown      | Health check failures | 3 consecutive failures | Page on-call |
-| HighErrorRate    | 5xx error rate        | > 5% for 5 minutes     | Page on-call |
-| MemoryExhaustion | Memory usage          | > 10 GB (production)   | Page on-call |
-| AllInstancesDown | No healthy targets    | 0 healthy instances    | Page on-call |
-
-**Warning Alerts** (investigate soon):
-
-| Alert             | Condition         | Threshold          | Action      |
-| ----------------- | ----------------- | ------------------ | ----------- |
-| HighLatency       | p99 response time | > 50ms for 5 min   | Notify team |
-| HighCPU           | CPU usage         | > 70% for 10 min   | Notify team |
-| HighMemory        | Memory usage      | > 80% of limit     | Notify team |
-| ElevatedErrorRate | 5xx error rate    | > 1% for 5 minutes | Notify team |
 
 ## Performance Tuning
 
@@ -670,7 +609,7 @@ scenarios:
   - name: 'Postcode Lookup'
     flow:
       - get:
-          url: '/address?country=GB&postcode={{ postcode }}'
+          url: '/lookup/postcode?postcode={{ postcode }}'
           beforeRequest: 'setPostcode'
 ```
 
@@ -721,7 +660,7 @@ artillery run artillery-test.yml
 
 **Symptoms:**
 
-- Memory usage > 10 GB (production)
+- Memory usage > 11 GB (production)
 - OOM (Out of Memory) crashes
 - Frequent restarts
 
@@ -819,42 +758,22 @@ ls -l packages/api/data/addresses.bin
 - **CPU per instance**: 2+ cores
 - **Example Instance**: AWS r6g.xlarge (32 GB RAM, 4 vCPU) or equivalent
 
-**Scaling Triggers:**
+**Scaling indicators:**
 
-- Scale out when: CPU > 60%, p99 > 50ms, memory > 80%
-- Scale in when: CPU < 20% for 5+ minutes
-- Alert when: Memory > 10 GB, error rate > 1%
+- Scale out when: CPU is consistently high, p99 latency is elevated, or request
+  rate is approaching capacity
+- Scale in when: CPU is consistently low during off-peak periods
 
-**Performance Targets:**
+### Deployment Checklist
 
-- **SLO**: 99.9% uptime, p50 < 10 ms
-- **Capacity**: 1000+ req/s per instance
-- **Startup**: < 10 seconds (40M record dataset load)
-
-### Next Steps
-
-**Infrastructure Setup:**
-
-1. Provision infrastructure with adequate memory (12+ GB RAM per instance)
-2. Configure load balancer with health checks
-3. Set up metrics collection and monitoring dashboards
-4. Integrate with your APM platform (New Relic, Datadog, etc.)
-5. Configure log aggregation to your logging platform
-6. Set up auto-scaling policies (CPU and memory based)
-
-**Application Deployment:**
-
-1. Build production dataset (40M records) using builder package
-2. Run load tests with production dataset to validate performance
-3. Prepare deployment artifacts with binary data files
-4. Document any additional monitoring metrics needed
-
-**Before Production Launch:**
-
-1. Load test with Artillery (target: 1000+ req/s)
-2. Validate memory usage stays under expected limits
-3. Verify health checks and auto-scaling work correctly
-4. Confirm alerting notifications reach your on-call team
+1. Provision infrastructure with adequate memory (12+ GB RAM per instance for
+   40M records)
+2. Configure load balancer with health checks pointing to `/health/live` and
+   `/health/ready`
+3. Build the dataset using the builder package and include binary files in your
+   container image
+4. Run load tests with your production dataset to validate performance before
+   going live
 
 ---
 

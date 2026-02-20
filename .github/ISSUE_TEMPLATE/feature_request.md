@@ -24,7 +24,7 @@ How do you envision this working?
 
 ```bash
 # New endpoint or parameter
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA&include=coordinates"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA&include=coordinates"
 ```
 
 **Expected response:**

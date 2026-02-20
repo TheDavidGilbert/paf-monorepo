@@ -53,6 +53,7 @@ export default tseslint.config(
       '**/*.config.cjs',
       '**/*.config.mjs',
       'jest.config.cjs',
+      '.claude/**',
     ],
   }
 );

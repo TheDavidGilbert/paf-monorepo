@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
 
-import { isValidUkPostcode, normalisePostcodeForKey } from './postcode.js';
+import { isValidUkPostcode, normalisePostcodeForKey, formatPostcodeKey } from './postcode.js';
 
 describe('isValidUkPostcode', () => {
   it('should validate correct UK postcodes', () => {
@@ -56,5 +56,33 @@ describe('normalisePostcodeForKey', () => {
 
   it('should slice long postcodes to 7 characters', () => {
     expect(normalisePostcodeForKey('TOOLONGPOSTCODE')).toBe('TOOLONG');
+  });
+});
+
+describe('formatPostcodeKey', () => {
+  it('should format 7-char keys (no padding) correctly', () => {
+    expect(formatPostcodeKey('SW1A1AA')).toBe('SW1A 1AA');
+    expect(formatPostcodeKey('DN551PT')).toBe('DN55 1PT');
+  });
+
+  it('should format padded keys (short outward codes) correctly', () => {
+    expect(formatPostcodeKey('PL11LR ')).toBe('PL1 1LR');
+    expect(formatPostcodeKey('M11AE  ')).toBe('M1 1AE');
+    expect(formatPostcodeKey('B338TH ')).toBe('B33 8TH');
+    expect(formatPostcodeKey('CR26XH ')).toBe('CR2 6XH');
+  });
+
+  it('should trim trailing spaces before formatting', () => {
+    expect(formatPostcodeKey('M11AE  ')).toBe('M1 1AE');
+    expect(formatPostcodeKey('PL11LR ')).toBe('PL1 1LR');
+  });
+
+  it('should be the inverse of normalisePostcodeForKey for valid postcodes', () => {
+    expect(formatPostcodeKey(normalisePostcodeForKey('SW1A 1AA'))).toBe('SW1A 1AA');
+    expect(formatPostcodeKey(normalisePostcodeForKey('PL1 1LR'))).toBe('PL1 1LR');
+    expect(formatPostcodeKey(normalisePostcodeForKey('M1 1AE'))).toBe('M1 1AE');
+    expect(formatPostcodeKey(normalisePostcodeForKey('DN55 1PT'))).toBe('DN55 1PT');
+    expect(formatPostcodeKey(normalisePostcodeForKey('B33 8TH'))).toBe('B33 8TH');
+    expect(formatPostcodeKey(normalisePostcodeForKey('CR2 6XH'))).toBe('CR2 6XH');
   });
 });

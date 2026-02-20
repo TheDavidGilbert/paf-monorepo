@@ -6,6 +6,7 @@ import cors from '@fastify/cors';
 
 import { loadDataset, loadMRDataset, getDataset } from './dataset.js';
 import { lookupRoute } from './routes/lookup.js';
+import { postcodesRoute } from './routes/postcodes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -25,7 +26,7 @@ const fastify = Fastify({
 //   /^https:\/\/[\w-]+\.example\.com$/, // Pattern match
 await fastify.register(cors, {
   origin: [
-    /^https?:\/\/localhost:\d+$/,  // localhost on any port
+    /^https?:\/\/localhost:\d+$/, // localhost on any port
   ],
   credentials: true,
 });
@@ -118,7 +119,7 @@ fastify.get('/health/ready', async (request, reply) => {
 fastify.get('/health/memory', async (request, reply) => {
   const memUsage = process.memoryUsage();
   const heapUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-  
+
   // Get memory limit (max old space size)
   const v8 = await import('node:v8');
   const heapStats = v8.getHeapStatistics();
@@ -160,8 +161,9 @@ fastify.get('/health/memory', async (request, reply) => {
   });
 });
 
-// Register lookup route
+// Register routes
 await fastify.register(lookupRoute);
+await fastify.register(postcodesRoute);
 
 // Load dataset before starting server
 try {
