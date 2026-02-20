@@ -4,162 +4,211 @@ import type { Address, MRRecord } from '../types.js';
 
 import { mapToAddressModel, mapMRToAddressModel } from './addressMapper.js';
 
+// Minimal helper: base Address with all new PAF fields set to empty strings
+function makeAddress(overrides: Partial<Address> = {}): Address {
+  return {
+    postcode: '',
+    postTown: '',
+    dependentLocality: '',
+    doubleDependentLocality: '',
+    thoroughfare: '',
+    dependentThoroughfare: '',
+    buildingNumber: '',
+    buildingName: '',
+    subBuildingName: '',
+    poBox: '',
+    departmentName: '',
+    organisationName: '',
+    udprn: '',
+    postcodeType: 'S',
+    suOrganisationIndicator: '',
+    deliveryPointSuffix: '',
+    ...overrides,
+  };
+}
+
 describe('mapToAddressModel', () => {
   it('should map PAF address with building number and street', () => {
-    const pafAddress: Address = {
+    const pafAddress = makeAddress({
       postcode: 'PL1 1LR',
       postTown: 'PLYMOUTH',
-      dependentLocality: '',
-      doubleDependentLocality: '',
       thoroughfare: 'Cornwall Street',
-      dependentThoroughfare: '',
       buildingNumber: '88',
-      buildingName: '',
-      subBuildingName: '',
       udprn: '12345',
       deliveryPointSuffix: '1A',
-    };
+    });
 
     const result = mapToAddressModel(pafAddress);
 
     expect(result.buildingNumber).toBe('88');
     expect(result.thoroughfare).toBe('Cornwall Street');
-    expect(result.townOrCity).toBe('PLYMOUTH');
-    expect(result.line1).toBe('88 Cornwall Street');
+    expect(result.postTown).toBe('PLYMOUTH');
+    expect(result.postcode).toBe('PL1 1LR');
     expect(result.formattedAddress).toEqual(['88 Cornwall Street', 'PLYMOUTH', 'PL1 1LR']);
   });
 
   it('should map PAF address with sub-building and building name', () => {
-    const pafAddress: Address = {
+    const pafAddress = makeAddress({
       postcode: 'PL1 1AE',
       postTown: 'PLYMOUTH',
-      dependentLocality: '',
-      doubleDependentLocality: '',
       thoroughfare: 'Old Town Street',
-      dependentThoroughfare: '',
-      buildingNumber: '',
       buildingName: '2a',
       subBuildingName: 'Flat 1',
       udprn: '53879040',
       deliveryPointSuffix: '1A',
-    };
+    });
 
     const result = mapToAddressModel(pafAddress);
 
     expect(result.subBuildingName).toBe('Flat 1');
     expect(result.buildingName).toBe('2a');
-    expect(result.line1).toBe('Flat 1, 2a');
-    expect(result.line2).toBe('Old Town Street');
     expect(result.formattedAddress).toContain('Flat 1');
     expect(result.formattedAddress).toContain('2a');
+    expect(result.formattedAddress).toContain('Old Town Street');
   });
 
   it('should handle dependent locality', () => {
-    const pafAddress: Address = {
+    const pafAddress = makeAddress({
       postcode: 'TEST 123',
       postTown: 'TEST TOWN',
       dependentLocality: 'Test Village',
-      doubleDependentLocality: '',
       thoroughfare: 'Test Street',
-      dependentThoroughfare: '',
       buildingNumber: '1',
-      buildingName: '',
-      subBuildingName: '',
       udprn: '99999',
       deliveryPointSuffix: '1A',
-    };
+    });
 
     const result = mapToAddressModel(pafAddress);
 
-    expect(result.locality).toBe('Test Village');
-    expect(result.line3).toBe('Test Village');
+    expect(result.dependentLocality).toBe('Test Village');
     expect(result.formattedAddress).toContain('Test Village');
   });
 
   it('should handle empty fields gracefully', () => {
-    const pafAddress: Address = {
+    const pafAddress = makeAddress({
       postcode: 'TEST 123',
       postTown: 'TEST TOWN',
-      dependentLocality: '',
-      doubleDependentLocality: '',
-      thoroughfare: '',
-      dependentThoroughfare: '',
-      buildingNumber: '',
-      buildingName: '',
-      subBuildingName: '',
-      udprn: '',
-      deliveryPointSuffix: '',
-    };
+    });
 
     const result = mapToAddressModel(pafAddress);
 
     expect(result.buildingNumber).toBe('');
     expect(result.thoroughfare).toBe('');
-    expect(result.line1).toBe('');
-    expect(result.line2).toBe('');
+    expect(result.organisationName).toBe('');
+    expect(result.departmentName).toBe('');
+    expect(result.poBox).toBe('');
     expect(result.formattedAddress).toEqual(['TEST TOWN', 'TEST 123']);
   });
 
-  it('should always include empty county, district, state fields for UK', () => {
-    const pafAddress: Address = {
-      postcode: 'PL1 1LR',
-      postTown: 'PLYMOUTH',
-      dependentLocality: '',
-      doubleDependentLocality: '',
-      thoroughfare: 'Test St',
-      dependentThoroughfare: '',
-      buildingNumber: '1',
-      buildingName: '',
-      subBuildingName: '',
-      udprn: '12345',
-      deliveryPointSuffix: '1A',
-    };
-
-    const result = mapToAddressModel(pafAddress);
-
-    expect(result.county).toBe('');
-    expect(result.district).toBe('');
-    expect(result.state).toBe('');
-    expect(result.stateCode).toBe('');
-  });
-
   it('should include udprn from the address and empty umprn for standard PAF', () => {
-    const pafAddress: Address = {
+    const pafAddress = makeAddress({
       postcode: 'PL1 1LR',
       postTown: 'PLYMOUTH',
-      dependentLocality: '',
-      doubleDependentLocality: '',
       thoroughfare: 'Cornwall Street',
-      dependentThoroughfare: '',
       buildingNumber: '88',
-      buildingName: '',
-      subBuildingName: '',
       udprn: '12345678',
       deliveryPointSuffix: '1A',
-    };
+    });
 
     const result = mapToAddressModel(pafAddress);
 
     expect(result.udprn).toBe('12345678');
     expect(result.umprn).toBe('');
   });
+
+  it('should place organisation name first in formattedAddress', () => {
+    const pafAddress = makeAddress({
+      postcode: 'EC1A 1BB',
+      postTown: 'LONDON',
+      thoroughfare: 'HIGH HOLBORN',
+      buildingNumber: '1',
+      organisationName: 'ACME CORPORATION',
+      suOrganisationIndicator: 'Y',
+    });
+
+    const result = mapToAddressModel(pafAddress);
+
+    expect(result.organisationName).toBe('ACME CORPORATION');
+    expect(result.formattedAddress[0]).toBe('ACME CORPORATION');
+    expect(result.formattedAddress).toContain('1 HIGH HOLBORN');
+  });
+
+  it('should place department name after organisation name', () => {
+    const pafAddress = makeAddress({
+      postcode: 'EC1A 1BB',
+      postTown: 'LONDON',
+      thoroughfare: 'HIGH HOLBORN',
+      buildingNumber: '1',
+      organisationName: 'ACME CORPORATION',
+      departmentName: 'FINANCE DEPARTMENT',
+    });
+
+    const result = mapToAddressModel(pafAddress);
+
+    expect(result.departmentName).toBe('FINANCE DEPARTMENT');
+    expect(result.formattedAddress[0]).toBe('ACME CORPORATION');
+    expect(result.formattedAddress[1]).toBe('FINANCE DEPARTMENT');
+  });
+
+  it('should use PO BOX instead of street for Large User records', () => {
+    const pafAddress = makeAddress({
+      postcode: 'SW1A 1AA',
+      postTown: 'LONDON',
+      organisationName: 'HM REVENUE & CUSTOMS',
+      poBox: '4000',
+      postcodeType: 'L',
+    });
+
+    const result = mapToAddressModel(pafAddress);
+
+    expect(result.poBox).toBe('4000');
+    expect(result.postcodeType).toBe('L');
+    expect(result.formattedAddress).toContain('PO BOX 4000');
+    expect(result.formattedAddress).not.toContain('');
+    // No street lines should appear
+    const hasStreet = result.formattedAddress.some(
+      (line) => line !== 'HM REVENUE & CUSTOMS' && line !== 'PO BOX 4000' && line !== 'LONDON' && line !== 'SW1A 1AA'
+    );
+    expect(hasStreet).toBe(false);
+  });
+
+  it('should pass through postcodeType and suOrganisationIndicator', () => {
+    const pafAddress = makeAddress({
+      postcode: 'PL1 1LR',
+      postTown: 'PLYMOUTH',
+      postcodeType: 'S',
+      suOrganisationIndicator: 'Y',
+    });
+
+    const result = mapToAddressModel(pafAddress);
+
+    expect(result.postcodeType).toBe('S');
+    expect(result.suOrganisationIndicator).toBe('Y');
+  });
+
+  it('should pass through deliveryPointSuffix', () => {
+    const pafAddress = makeAddress({
+      postcode: 'PL1 1LR',
+      postTown: 'PLYMOUTH',
+      deliveryPointSuffix: '2B',
+    });
+
+    const result = mapToAddressModel(pafAddress);
+
+    expect(result.deliveryPointSuffix).toBe('2B');
+  });
 });
 
 // ---------------------------------------------------------------------------
 
-const baseParent: Address = {
+const baseParent: Address = makeAddress({
   postcode: 'SW1A 1AA',
   postTown: 'LONDON',
-  dependentLocality: '',
-  doubleDependentLocality: '',
   thoroughfare: 'ACACIA AVENUE',
-  dependentThoroughfare: '',
   buildingNumber: '37',
-  buildingName: '',
-  subBuildingName: '',
   udprn: '00012345',
   deliveryPointSuffix: '1A',
-};
+});
 
 describe('mapMRToAddressModel', () => {
   it('should use MR buildingName as subBuildingName (common case — flat identifier)', () => {
@@ -169,7 +218,7 @@ describe('mapMRToAddressModel', () => {
     expect(result.subBuildingName).toBe('FLAT 1');
     expect(result.buildingNumber).toBe('37');
     expect(result.thoroughfare).toBe('ACACIA AVENUE');
-    expect(result.townOrCity).toBe('LONDON');
+    expect(result.postTown).toBe('LONDON');
     expect(result.formattedAddress).toContain('FLAT 1');
     expect(result.formattedAddress).toContain('37 ACACIA AVENUE');
   });
@@ -198,11 +247,11 @@ describe('mapMRToAddressModel', () => {
   });
 
   it('should inherit parent buildingName as buildingName when MR only has buildingName (used as subBuilding)', () => {
-    const parentWithBuilding: Address = {
+    const parentWithBuilding = makeAddress({
       ...baseParent,
       buildingNumber: '',
       buildingName: 'VICTORIA HOUSE',
-    };
+    });
     const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 3', subBuildingName: '', umprn: '99000005' };
     const result = mapMRToAddressModel(parentWithBuilding, mr);
 
@@ -213,14 +262,27 @@ describe('mapMRToAddressModel', () => {
   });
 
   it('should preserve locality and postcode from parent', () => {
-    const parentWithLocality: Address = {
+    const parentWithLocality = makeAddress({
       ...baseParent,
       dependentLocality: 'MAYFAIR',
-    };
+    });
     const mr: MRRecord = { buildingNumber: '', buildingName: 'FLAT 1', subBuildingName: '', umprn: '99000006' };
     const result = mapMRToAddressModel(parentWithLocality, mr);
 
-    expect(result.locality).toBe('MAYFAIR');
+    expect(result.dependentLocality).toBe('MAYFAIR');
     expect(result.formattedAddress).toContain('SW1A 1AA');
+  });
+
+  it('should inherit B2B fields from parent', () => {
+    const parentWithOrg = makeAddress({
+      ...baseParent,
+      organisationName: 'ACME LTD',
+      departmentName: 'ACCOUNTS',
+    });
+    const mr: MRRecord = { buildingNumber: '', buildingName: 'SUITE 1', subBuildingName: '', umprn: '99000007' };
+    const result = mapMRToAddressModel(parentWithOrg, mr);
+
+    expect(result.organisationName).toBe('ACME LTD');
+    expect(result.departmentName).toBe('ACCOUNTS');
   });
 });

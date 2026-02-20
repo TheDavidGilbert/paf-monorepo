@@ -3,9 +3,8 @@
 This guide provides everything you need to integrate with the PAF (Postcode
 Address File) Address Lookup API.
 
-> **Contributing:** This is an innersource project! If you find issues or need
-> features, you can contribute directly. See [CONTRIBUTOR.md](CONTRIBUTOR.md)
-> for guidelines.
+> **Contributions welcome:** Found an issue or want a new feature? Contributions
+> are welcome — see [CONTRIBUTOR.md](CONTRIBUTOR.md) for guidelines.
 
 ## Table of Contents
 
@@ -15,7 +14,8 @@ Address File) Address Lookup API.
 - [CORS Configuration](#cors-configuration)
 - [Endpoints](#endpoints)
   - [Health Check](#health-check)
-  - [Address Lookup](#address-lookup)
+  - [Postcode Lookup](#postcode-lookup)
+  - [Postcode Autocomplete](#postcode-autocomplete)
 - [Response Format](#response-format)
 - [Error Handling](#error-handling)
 - [Testing](#testing)
@@ -32,15 +32,18 @@ Address File) Address Lookup API.
 # Check service health
 curl http://localhost:3000/health
 
-# Lookup an address
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+# Lookup addresses for a postcode
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
+
+# Autocomplete a partial postcode
+curl "http://localhost:3000/lookup/autocomplete?q=SW1A"
 ```
 
 ### JavaScript Example
 
 ```javascript
 const response = await fetch(
-  'http://localhost:3000/address?country=GB&postcode=SW1A%201AA'
+  'http://localhost:3000/lookup/postcode?postcode=SW1A%201AA'
 );
 const data = await response.json();
 
@@ -130,36 +133,35 @@ Check if the API is running and the dataset is loaded.
 - Deployment validation
 - Dataset version verification
 
-### Address Lookup
+### Postcode Lookup
 
 Retrieve addresses for a UK postcode.
 
-**Endpoint:** `GET /address`
+**Endpoint:** `GET /lookup/postcode`
 
 **Query Parameters:**
 
 | Parameter  | Type   | Required | Description                                    | Example                 |
 | ---------- | ------ | -------- | ---------------------------------------------- | ----------------------- |
-| `country`  | string | Yes      | Country code (must be "GB")                    | `GB`                    |
 | `postcode` | string | Yes      | UK postcode (case-insensitive, space optional) | `SW1A 1AA` or `SW1A1AA` |
 
 **Example Requests:**
 
 ```bash
 # With space (URL-encoded)
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
 
 # Without space
-curl "http://localhost:3000/address?country=GB&postcode=SW1A1AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A1AA"
 
 # Lowercase (automatically normalised)
-curl "http://localhost:3000/address?country=GB&postcode=pl1%201lr"
+curl "http://localhost:3000/lookup/postcode?postcode=pl1%201lr"
 ```
 
 ## Response Format
 
-All responses follow the `SearchResponse` schema for consistency with legacy
-address lookup systems.
+All responses from `/lookup/postcode` follow the `SearchResponse` schema for
+consistency with legacy address lookup systems.
 
 ### SearchResponse Object
 
@@ -179,24 +181,28 @@ address lookup systems.
 
 ### AddressModel Object
 
+Fields are returned in Royal Mail PAF format. All fields are always present; optional PAF fields are empty strings when not applicable.
+
 ```typescript
 {
-  buildingNumber: string;      // Building number (e.g., "10", "12A")
-  buildingName: string;        // Building name
-  subBuildingName: string;     // Sub-building name (e.g., "Flat 2")
-  thoroughfare: string;        // Street name
-  dependentThoroughfare: string; // Secondary street name
-  dependentLocality: string;   // Village or area
-  doubleDependentLocality: string; // Sub-area
-  townOrCity: string;          // Post town
-  county: string;              // County (empty for PAF data)
-  postcode: string;            // Full postcode
-  udprn: string;               // Unique Delivery Point Reference Number
-  deliveryPointSuffix: string; // Royal Mail delivery suffix
-  line1: string;               // Formatted first line
-  line2: string;               // Formatted second line
-  line3: string;               // Formatted third line
-  formattedAddress: string[];  // Array of non-empty address lines
+  formattedAddress: string[];      // Address lines in display order (non-empty lines only)
+  organisationName: string;        // Organisation name (B2B); empty for residential
+  departmentName: string;          // Department name; empty when not applicable
+  poBox: string;                   // PO Box number; present only for Large User records
+  subBuildingName: string;         // Sub-building name (e.g., "FLAT 2")
+  buildingName: string;            // Building name (e.g., "VICTORIA HOUSE")
+  buildingNumber: string;          // Building number (e.g., "10", "12A")
+  dependentThoroughfare: string;   // Secondary street name
+  thoroughfare: string;            // Street name
+  doubleDependentLocality: string; // Sub-area within a village
+  dependentLocality: string;       // Village or area
+  postTown: string;                // Royal Mail post town
+  postcode: string;                // Full postcode
+  postcodeType: string;            // 'S' (Small User) or 'L' (Large User / PO Box)
+  suOrganisationIndicator: string; // 'Y' if Small User organisation; empty otherwise
+  deliveryPointSuffix: string;     // Royal Mail delivery point suffix (e.g., "1A")
+  udprn: string;                   // Unique Delivery Point Reference Number
+  umprn: string;                   // Unique Multiple Residence Point Reference Number; empty for standard PAF
 }
 ```
 
@@ -214,22 +220,24 @@ address lookup systems.
   "fullAddress": true,
   "results": [
     {
-      "buildingNumber": "88",
-      "buildingName": "",
+      "formattedAddress": ["88 Cornwall Street", "PLYMOUTH", "PL1 1LR"],
+      "organisationName": "",
+      "departmentName": "",
+      "poBox": "",
       "subBuildingName": "",
-      "thoroughfare": "Cornwall Street",
+      "buildingName": "",
+      "buildingNumber": "88",
       "dependentThoroughfare": "",
-      "dependentLocality": "",
+      "thoroughfare": "Cornwall Street",
       "doubleDependentLocality": "",
-      "townOrCity": "PLYMOUTH",
-      "county": "",
+      "dependentLocality": "",
+      "postTown": "PLYMOUTH",
       "postcode": "PL1 1LR",
-      "udprn": "12345678",
+      "postcodeType": "S",
+      "suOrganisationIndicator": "",
       "deliveryPointSuffix": "1A",
-      "line1": "88 Cornwall Street",
-      "line2": "",
-      "line3": "",
-      "formattedAddress": ["88 Cornwall Street", "PLYMOUTH", "PL1 1LR"]
+      "udprn": "12345678",
+      "umprn": ""
     }
   ]
 }
@@ -241,6 +249,59 @@ address lookup systems.
   numeric (1, 2, 10, 100)
 - Some postcodes may return multiple addresses (e.g., flats, businesses)
 - The `formattedAddress` array only includes non-empty lines
+
+### Postcode Autocomplete
+
+Return a list of full postcodes that match a partial input.
+
+**Endpoint:** `GET /lookup/autocomplete`
+
+**Query Parameters:**
+
+| Parameter | Type   | Required | Description                                          | Example |
+| --------- | ------ | -------- | ---------------------------------------------------- | ------- |
+| `q`       | string | Yes      | Postcode prefix, 2–7 alphanumeric chars (normalised) | `SW1A`  |
+| `limit`   | number | No       | Maximum results (1–100, default: 10)                 | `5`     |
+
+**Example Requests:**
+
+```bash
+# Basic prefix search
+curl "http://localhost:3000/lookup/autocomplete?q=SW1A"
+
+# Limit results
+curl "http://localhost:3000/lookup/autocomplete?q=SW1A&limit=5"
+
+# Lowercase / with spaces (normalised automatically)
+curl "http://localhost:3000/lookup/autocomplete?q=sw1a%201"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": 200,
+  "query": "SW1A",
+  "countryCode": "GB",
+  "country": "United Kingdom",
+  "total": 2,
+  "results": ["SW1A 1AA", "SW1A 2AA"]
+}
+```
+
+**Error Responses:**
+
+- **400 Bad Request** — missing, too short, too long, or invalid characters in `q`
+
+  ```json
+  { "status": 400, "error": "Query must be at least 2 characters" }
+  ```
+
+**Notes:**
+
+- The query is uppercased and spaces are stripped before searching, so `"sw1a 1"` and `"SW1A1"` produce the same results.
+- Results are sorted lexicographically (matching the binary index order).
+- Responses are cached for 1 hour (`Cache-Control: public, max-age=3600`).
 
 ## Error Handling
 
@@ -256,7 +317,6 @@ array.
 | 200         | Success               | Address(es) found             |
 | 400         | Bad Request           | Invalid postcode format       |
 | 404         | Not Found             | Valid postcode not in dataset |
-| 422         | Unprocessable Entity  | Invalid country code          |
 | 500         | Internal Server Error | Server error                  |
 | 503         | Service Unavailable   | Dataset not loaded            |
 
@@ -271,8 +331,8 @@ array.
   "message": "Invalid UK postcode format",
   "provider": "PAF",
   "postCode": "",
-  "countryCode": "",
-  "country": "",
+  "countryCode": "GB",
+  "country": "United Kingdom",
   "fullAddress": true,
   "results": []
 }
@@ -293,8 +353,8 @@ array.
   "message": "Postcode not found",
   "provider": "PAF",
   "postCode": "",
-  "countryCode": "",
-  "country": "",
+  "countryCode": "GB",
+  "country": "United Kingdom",
   "fullAddress": true,
   "results": []
 }
@@ -304,28 +364,6 @@ array.
 
 - Valid postcode format but not in the dataset
 - `postcode=ZZ99 9ZZ`
-
-#### 422 Unprocessable Entity - Invalid Country
-
-```json
-{
-  "status": 422,
-  "code": 422,
-  "message": "Unsupported country: US",
-  "provider": "PAF",
-  "postCode": "",
-  "countryCode": "",
-  "country": "",
-  "fullAddress": true,
-  "results": []
-}
-```
-
-**Triggers:**
-
-- `country=US`
-- `country=FR`
-- Any country code other than "GB"
 
 ## Testing
 
@@ -361,22 +399,19 @@ special postcode patterns.
 
 ```bash
 # Generate 200 OK with mock data
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X200"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X200"
 
 # Generate 400 Bad Request
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X400"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X400"
 
 # Generate 404 Not Found
-curl "http://localhost:3000/address?country=GB&postcode=XXXX404"
-
-# Generate 422 Unprocessable Entity
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X422"
+curl "http://localhost:3000/lookup/postcode?postcode=XXXX404"
 
 # Generate 500 Internal Server Error
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X500"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X500"
 
 # Generate 503 Service Unavailable
-curl "http://localhost:3000/address?country=GB&postcode=XXX%20X503"
+curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X503"
 ```
 
 **Test Response (200):**
@@ -393,22 +428,24 @@ curl "http://localhost:3000/address?country=GB&postcode=XXX%20X503"
   "fullAddress": true,
   "results": [
     {
-      "buildingNumber": "123",
-      "buildingName": "Test Building",
+      "formattedAddress": ["123 Test Street", "Test Town", "XXX X200"],
+      "organisationName": "",
+      "departmentName": "",
+      "poBox": "",
       "subBuildingName": "",
-      "thoroughfare": "Test Street",
+      "buildingName": "Test Building",
+      "buildingNumber": "123",
       "dependentThoroughfare": "",
-      "dependentLocality": "",
+      "thoroughfare": "Test Street",
       "doubleDependentLocality": "",
-      "townOrCity": "Test Town",
-      "county": "",
+      "dependentLocality": "",
+      "postTown": "Test Town",
       "postcode": "XXX X200",
-      "udprn": "99999999",
+      "postcodeType": "S",
+      "suOrganisationIndicator": "",
       "deliveryPointSuffix": "1A",
-      "line1": "123 Test Street",
-      "line2": "",
-      "line3": "",
-      "formattedAddress": ["123 Test Street", "Test Town", "XXX X200"]
+      "udprn": "99999999",
+      "umprn": ""
     }
   ]
 }
@@ -425,20 +462,17 @@ curl "http://localhost:3000/address?country=GB&postcode=XXX%20X503"
 
 ```bash
 # Valid formats (all equivalent)
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
-curl "http://localhost:3000/address?country=GB&postcode=SW1A1AA"
-curl "http://localhost:3000/address?country=GB&postcode=sw1a%201aa"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A1AA"
+curl "http://localhost:3000/lookup/postcode?postcode=sw1a%201aa"
 
 # Invalid formats (400 Bad Request)
-curl "http://localhost:3000/address?country=GB&postcode=INVALID"
-curl "http://localhost:3000/address?country=GB&postcode=12345"
-curl "http://localhost:3000/address?country=GB&postcode="
+curl "http://localhost:3000/lookup/postcode?postcode=INVALID"
+curl "http://localhost:3000/lookup/postcode?postcode=12345"
+curl "http://localhost:3000/lookup/postcode?postcode="
 
 # Valid format but not found (404 Not Found)
-curl "http://localhost:3000/address?country=GB&postcode=ZZ99%209ZZ"
-
-# Invalid country (422 Unprocessable Entity)
-curl "http://localhost:3000/address?country=US&postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=ZZ99%209ZZ"
 ```
 
 ## Integration Examples
@@ -459,32 +493,33 @@ interface SearchResponse {
 }
 
 interface AddressModel {
-  buildingNumber: string;
-  buildingName: string;
-  subBuildingName: string;
-  thoroughfare: string;
-  dependentThoroughfare: string;
-  dependentLocality: string;
-  doubleDependentLocality: string;
-  townOrCity: string;
-  county: string;
-  postcode: string;
-  udprn: string;
-  deliveryPointSuffix: string;
-  line1: string;
-  line2: string;
-  line3: string;
   formattedAddress: string[];
+  organisationName: string;
+  departmentName: string;
+  poBox: string;
+  subBuildingName: string;
+  buildingName: string;
+  buildingNumber: string;
+  dependentThoroughfare: string;
+  thoroughfare: string;
+  doubleDependentLocality: string;
+  dependentLocality: string;
+  postTown: string;
+  postcode: string;
+  postcodeType: string;
+  suOrganisationIndicator: string;
+  deliveryPointSuffix: string;
+  udprn: string;
+  umprn: string;
 }
 
 async function lookupPostcode(postcode: string): Promise<SearchResponse> {
   const params = new URLSearchParams({
-    country: 'GB',
     postcode: postcode.trim(),
   });
 
   const response = await fetch(
-    `http://localhost:3000/address?${params.toString()}`
+    `http://localhost:3000/lookup/postcode?${params.toString()}`
   );
 
   const data: SearchResponse = await response.json();
@@ -533,12 +568,11 @@ function usePostcodeLookup(): UsePostcodeLookup {
 
     try {
       const params = new URLSearchParams({
-        country: 'GB',
         postcode: postcode.trim(),
       });
 
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL}/address?${params.toString()}`
+        `${process.env.REACT_APP_API_URL}/lookup/postcode?${params.toString()}`
       );
 
       const data: SearchResponse = await response.json();
@@ -602,9 +636,8 @@ const axios = require('axios');
 
 async function lookupPostcode(postcode) {
   try {
-    const response = await axios.get('http://localhost:3000/address', {
+    const response = await axios.get('http://localhost:3000/lookup/postcode', {
       params: {
-        country: 'GB',
         postcode: postcode,
       },
     });
@@ -672,12 +705,11 @@ class AddressLookupClient:
             requests.RequestException: If request fails
         """
         params = {
-            'country': 'GB',
             'postcode': postcode.strip()
         }
 
         response = requests.get(
-            f"{self.base_url}/address",
+            f"{self.base_url}/lookup/postcode",
             params=params
         )
 
@@ -737,7 +769,7 @@ Always handle all possible error states:
 async function safePostcodeLookup(postcode) {
   try {
     const response = await fetch(
-      `http://localhost:3000/address?country=GB&postcode=${encodeURIComponent(postcode)}`
+      `http://localhost:3000/lookup/postcode?postcode=${encodeURIComponent(postcode)}`
     );
 
     const data = await response.json();
@@ -749,8 +781,6 @@ async function safePostcodeLookup(postcode) {
         return { success: false, error: 'Invalid postcode format' };
       case 404:
         return { success: false, error: 'Postcode not found' };
-      case 422:
-        return { success: false, error: 'Invalid country' };
       case 503:
         return { success: false, error: 'Service temporarily unavailable' };
       default:
@@ -783,7 +813,7 @@ class PostcodeLookupCache {
     }
 
     const response = await fetch(
-      `http://localhost:3000/address?country=GB&postcode=${encodeURIComponent(postcode)}`
+      `http://localhost:3000/lookup/postcode?postcode=${encodeURIComponent(postcode)}`
     );
 
     const data = await response.json();
@@ -833,7 +863,7 @@ async function lookupWithRetry(postcode, maxRetries = 3, delayMs = 1000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(
-        `http://localhost:3000/address?country=GB&postcode=${encodeURIComponent(postcode)}`
+        `http://localhost:3000/lookup/postcode?postcode=${encodeURIComponent(postcode)}`
       );
 
       const data = await response.json();

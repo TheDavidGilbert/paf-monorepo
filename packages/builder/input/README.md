@@ -12,35 +12,30 @@ This directory is where you should place your Royal Mail Postcode Address File (
 
 ## Expected Directory Structure
 
-The builder expects CSV files in the following subdirectories:
-
 ```
 input/
 ├── CSV PAF/
-│   ├── CSV PAF.csv          # Main PAF file (required)
-│   └── CSV PAF Welsh.csv    # Welsh addresses (optional)
-├── CSV ALIAS/               # Address aliases (optional)
-├── CSV BFPO/                # British Forces Post Office (optional)
-├── CSV MULRES/              # Multiple residences (optional)
-├── CSV PIF/                 # Postcode Information File (optional)
-├── CSV POSTZON/             # Postcode zones (optional)
-└── ... (other Royal Mail files)
+│   └── CSV PAF.csv               # Main PAF delivery point file (required)
+└── CSV MULRES/
+    └── CSV Multiple Residence.csv # Multiple Residence data (optional)
 ```
 
-## Getting Started
+### CSV PAF (required)
 
-1. Obtain Royal Mail PAF data with appropriate license
-2. Extract the CSV files into this `input/` directory
-3. Place the main PAF file at: `input/CSV PAF/CSV PAF.csv`
-4. Run the builder: `pnpm build:builder`
+The main Postcode Address File CSV. The builder reads this to produce the address lookup dataset.
+
+Default path: `input/CSV PAF/CSV PAF.csv`
+
+A custom path can be specified with the `--input` flag:
+
+```bash
+pnpm build:builder --input /path/to/CSV PAF/CSV PAF.csv
+```
+
+### CSV MULRES (optional)
+
+The Multiple Residence file links individual units (e.g. flats) to their parent PAF delivery point via UDPRN. If this file is absent the builder completes successfully without MR data and the API will not expand Multiple Residence records.
 
 ## File Exclusions
 
-All `.csv` files in this directory are excluded from git via `.gitignore` to ensure:
-- No accidental sharing of licensed data
-- Compliance with Royal Mail licensing terms
-- Repository remains lightweight
-
-## Questions?
-
-See the main [README.md](../../../README.md) for more information about the build process.
+All `.csv` files in this directory are excluded from git via `.gitignore` to prevent accidental sharing of licensed data and to keep the repository lightweight.

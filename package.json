@@ -14,6 +14,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TheDavidGilbert/paf-monorepo.git"
+  },
+  "homepage": "https://github.com/TheDavidGilbert/paf-monorepo#readme",
   "keywords": [],
   "author": "",
   "license": "MIT",

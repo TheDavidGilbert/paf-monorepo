@@ -185,7 +185,7 @@ async function main() {
     const startRow = rowIndex;
 
     for (const row of rows) {
-      // Encode row: 11 uint16 lengths + concatenated field bytes
+      // Encode row: _FIELD_COUNT x uint16 lengths + concatenated field bytes
       const fieldBuffers: Buffer[] = [];
       const lengths: number[] = [];
 
@@ -195,8 +195,8 @@ async function main() {
         lengths.push(buf.length);
       }
 
-      // Write header (11 x uint16 = 22 bytes)
-      const headerBuf = Buffer.alloc(22);
+      // Write header (N x uint16 = N*2 bytes)
+      const headerBuf = Buffer.alloc(_FIELD_COUNT * 2);
       writeUint16Array(headerBuf, 0, lengths);
       rowsStream.write(headerBuf);
 
@@ -207,7 +207,7 @@ async function main() {
 
       // Record row start offset
       rowStartArr.push(currentOffset);
-      currentOffset += 22 + fieldBuffers.reduce((sum, b) => sum + b.length, 0);
+      currentOffset += _FIELD_COUNT * 2 + fieldBuffers.reduce((sum, b) => sum + b.length, 0);
       rowIndex++;
     }
 

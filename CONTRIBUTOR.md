@@ -1,12 +1,11 @@
 # Contribution Guide
 
 Welcome! We're excited that you're interested in contributing to the PAF Address
-Lookup Service. This guide will help you get started with contributing to our
-innersource project.
+Lookup Service. This guide will help you get started.
 
 ## Table of Contents
 
-- [About Innersource](#about-innersource)
+- [About This Project](#about-this-project)
 - [Ways to Contribute](#ways-to-contribute)
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
@@ -17,28 +16,27 @@ innersource project.
 - [Recognition](#recognition)
 - [Code of Conduct](#code-of-conduct)
 
-## About Innersource
+## About This Project
 
-This project follows the **innersource** model: it's open for collaboration
-across our organization, allowing teams to contribute improvements while core
-owners maintain the project.
+This is an **open source** project. Its primary purpose is to serve as a
+foundation you can fork, adapt, and self-host with your own Royal Mail PAF
+licence data. Community contributions are genuinely welcome — whether that's
+bug fixes, improvements, or documentation.
 
 ### Benefits of Contributing
 
-- **Fix bugs** that affect your team immediately
-- **Add features** your team needs
-- **Improve documentation** based on your experience
+- **Fix bugs** that affect you immediately rather than waiting
+- **Add features** you need
+- **Improve documentation** based on your experience using the project
 - **Learn** from code reviews and collaboration
-- **Build** your reputation as a contributor
-- **Influence** the roadmap and technical decisions
+- **Influence** the technical direction
 
-### Innersource Principles
+### Open Source Principles
 
-1. **Shared Ownership**: Everyone can contribute, owners maintain quality
-2. **Transparency**: Development happens in the open
-3. **Meritocracy**: Good ideas win, regardless of source
-4. **Documentation**: Everything is documented for newcomers
-5. **Welcoming**: We support and mentor contributors
+1. **Transparency**: Development happens in the open
+2. **Meritocracy**: Good ideas are welcome regardless of who proposes them
+3. **Documentation**: Everything is documented for newcomers
+4. **Welcoming**: We support and mentor contributors
 
 ## Ways to Contribute
 
@@ -153,7 +151,7 @@ Help review others' contributions:
 
 6. **Verify everything works**
    ```bash
-   curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+   curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
    ```
 
 ### Project Structure
@@ -322,7 +320,7 @@ pnpm dev:api
 
 # In another terminal
 curl http://localhost:3000/health
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
 ```
 
 ### 5. Update Documentation
@@ -564,7 +562,7 @@ describe('lookupRoute', () => {
   it('should return addresses for valid postcode', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/address?country=GB&postcode=SW1A 1AA',
+      url: '/lookup/postcode?postcode=SW1A 1AA',
     });
 
     expect(response.statusCode).toBe(200);
@@ -921,7 +919,6 @@ git push origin feature/my-feature
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [Jest Documentation](https://jestjs.io/docs/getting-started)
 - [Fastify Documentation](https://www.fastify.io/docs/latest/)
-- [Innersource Commons](https://innersourcecommons.org/)
 
 ---
 

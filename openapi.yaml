@@ -1,0 +1,741 @@
+openapi: '3.1.0'
+
+info:
+  title: PAF Address Lookup API
+  version: '1.0.0'
+  description: |
+    REST API for Royal Mail Postcode Address File (PAF) lookups.
+
+    Provides fast postcode-to-address lookups and prefix autocomplete for UK
+    postcodes, served from compact binary data files loaded entirely into memory.
+
+    > **Licence note:** Users are responsible for obtaining their own Royal Mail
+    > PAF licence. This API does not grant rights to use Royal Mail PAF data.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: lookup
+    description: Postcode address lookup and autocomplete
+  - name: health
+    description: Health checks and observability
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Postcode lookup
+  # ---------------------------------------------------------------------------
+
+  /lookup/postcode:
+    get:
+      operationId: lookupPostcode
+      tags: [lookup]
+      summary: Lookup addresses by postcode
+      description: |
+        Returns all delivery points for a full UK postcode.
+
+        Where Multiple Residence (MR) data is available for a delivery point,
+        the parent record is suppressed and individual unit records (e.g.
+        individual flats) are returned instead.
+
+        Results are sorted by building number: alphabetic values first (A, B…),
+        then numeric in ascending order (1, 2, 10…).
+      parameters:
+        - name: postcode
+          in: query
+          required: true
+          description: >
+            Full UK postcode. Case-insensitive; space between outward and inward
+            codes is optional. Examples: `SW1A 1AA`, `SW1A1AA`, `sw1a1aa`.
+          schema:
+            type: string
+            example: SW1A 1AA
+      responses:
+        '200':
+          description: Addresses found for postcode
+          headers:
+            Cache-Control:
+              description: Responses are cacheable for 24 hours
+              schema:
+                type: string
+                example: 'public, max-age=86400, must-revalidate'
+            Vary:
+              schema:
+                type: string
+                example: Accept-Encoding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                status: 200
+                code: 200
+                message: Success
+                provider: PAF
+                postCode: SW1A 2AA
+                countryCode: GB
+                country: United Kingdom
+                fullAddress: true
+                results:
+                  - buildingNumber: '10'
+                    buildingName: ''
+                    subBuildingName: ''
+                    subBuildingNumber: ''
+                    thoroughfare: DOWNING STREET
+                    locality: ''
+                    townOrCity: LONDON
+                    county: ''
+                    district: ''
+                    state: ''
+                    stateCode: ''
+                    udprn: '12345678'
+                    umprn: ''
+                    line1: 10 Downing Street
+                    line2: ''
+                    line3: ''
+                    line4: ''
+                    formattedAddress:
+                      - 10 Downing Street
+                      - LONDON
+                      - SW1A 2AA
+        '400':
+          description: Invalid or missing postcode
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: 'no-cache, no-store, must-revalidate'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                status: 400
+                code: 400
+                message: Invalid UK postcode format
+                provider: PAF
+                postCode: ''
+                countryCode: GB
+                country: United Kingdom
+                fullAddress: true
+                results: []
+        '404':
+          description: Postcode not found in dataset
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: 'public, max-age=86400, must-revalidate'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              example:
+                status: 404
+                code: 404
+                message: Postcode not found
+                provider: PAF
+                postCode: ''
+                countryCode: GB
+                country: United Kingdom
+                fullAddress: true
+                results: []
+
+  # ---------------------------------------------------------------------------
+  # Postcode autocomplete
+  # ---------------------------------------------------------------------------
+
+  /lookup/autocomplete:
+    get:
+      operationId: autocompletePostcode
+      tags: [lookup]
+      summary: Autocomplete postcode prefix
+      description: |
+        Returns full postcodes whose prefix matches the supplied query string.
+
+        The query is normalised (uppercased, spaces stripped) before searching,
+        so `"sw1a 1"` and `"SW1A1"` return the same results. Results are in
+        alphabetical order and capped at `limit` (max 100, default 10).
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: >
+            Postcode prefix to search for. Must be 2–7 alphanumeric characters
+            after normalisation. Spaces are stripped automatically, so
+            `"SW1A 1"` is treated as `"SW1A1"`.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 10
+            example: SW1A
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of postcodes to return (1–100).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+            example: 5
+      responses:
+        '200':
+          description: Matching postcodes returned
+          headers:
+            Cache-Control:
+              description: Responses are cacheable for 1 hour
+              schema:
+                type: string
+                example: 'public, max-age=3600, must-revalidate'
+            Vary:
+              schema:
+                type: string
+                example: Accept-Encoding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutocompleteResponse'
+              example:
+                status: 200
+                query: SW1A
+                countryCode: GB
+                country: United Kingdom
+                total: 2
+                results:
+                  - SW1A 1AA
+                  - SW1A 2AA
+        '400':
+          description: Query parameter missing, too short/long, or contains invalid characters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutocompleteErrorResponse'
+              examples:
+                missing:
+                  summary: Missing query parameter
+                  value:
+                    status: 400
+                    message: 'Query parameter "q" is required'
+                tooShort:
+                  summary: Query too short after normalisation
+                  value:
+                    status: 400
+                    message: Query must be at least 2 characters
+                    query: S
+                invalidChars:
+                  summary: Query contains invalid characters
+                  value:
+                    status: 400
+                    message: Query contains invalid characters
+                    query: 'SW!A'
+
+  # ---------------------------------------------------------------------------
+  # Health checks
+  # ---------------------------------------------------------------------------
+
+  /health:
+    get:
+      operationId: getHealth
+      tags: [health]
+      summary: Combined health check
+      description: >
+        Returns dataset metadata, process uptime, and memory statistics.
+        Returns 503 if the dataset has not been loaded yet.
+      responses:
+        '200':
+          description: Service is healthy and dataset is loaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Dataset not loaded
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, error]
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  error:
+                    type: string
+                    example: Dataset not loaded
+
+  /health/live:
+    get:
+      operationId: getLiveness
+      tags: [health]
+      summary: Liveness probe
+      description: >
+        Always returns 200 while the process is running. Use for
+        Kubernetes/ECS liveness probes to determine whether the container
+        should be restarted.
+      responses:
+        '200':
+          description: Process is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, uptime, timestamp]
+                properties:
+                  status:
+                    type: string
+                    example: alive
+                  uptime:
+                    type: number
+                    description: Process uptime in seconds
+                    example: 12345
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: '2026-02-20T10:30:00.000Z'
+
+  /health/ready:
+    get:
+      operationId: getReadiness
+      tags: [health]
+      summary: Readiness probe
+      description: >
+        Returns 200 only when the dataset is loaded and heap usage is below 95%.
+        Use for Kubernetes/ECS readiness probes to determine whether traffic
+        should be routed to this instance.
+      responses:
+        '200':
+          description: Service is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, dataset, memory]
+                properties:
+                  status:
+                    type: string
+                    example: ready
+                  dataset:
+                    type: object
+                    required: [rows, distinctPostcodes]
+                    properties:
+                      rows:
+                        type: integer
+                        example: 40123456
+                      distinctPostcodes:
+                        type: integer
+                        example: 1789012
+                  memory:
+                    type: object
+                    required: [heapUsagePercent]
+                    properties:
+                      heapUsagePercent:
+                        type: number
+                        example: 65
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, reason]
+                properties:
+                  status:
+                    type: string
+                    example: not_ready
+                  reason:
+                    type: string
+                    example: Dataset not loaded
+                  error:
+                    type: string
+                    description: Error detail (present on unexpected failures)
+
+  /health/memory:
+    get:
+      operationId: getMemoryStats
+      tags: [health]
+      summary: Detailed memory statistics
+      description: >
+        Returns detailed V8 heap, process RSS, heap space breakdown, and
+        heap statistics. Useful for monitoring and capacity planning.
+      responses:
+        '200':
+          description: Memory statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+
+# =============================================================================
+# Components
+# =============================================================================
+
+components:
+  schemas:
+
+    # -------------------------------------------------------------------------
+    # Postcode lookup
+    # -------------------------------------------------------------------------
+
+    SearchResponse:
+      type: object
+      description: >
+        Unified response envelope for postcode lookup results and errors.
+        All fields are always present; `results` is an empty array on errors.
+      required:
+        - status
+        - code
+        - message
+        - provider
+        - postCode
+        - countryCode
+        - country
+        - fullAddress
+        - results
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+          example: 200
+        code:
+          type: integer
+          description: Application code (mirrors HTTP status)
+          example: 200
+        message:
+          type: string
+          example: Success
+        provider:
+          type: string
+          description: Data provider identifier
+          example: PAF
+        postCode:
+          type: string
+          description: Normalised postcode from the request (empty on error)
+          example: SW1A 1AA
+        countryCode:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+          example: GB
+        country:
+          type: string
+          example: United Kingdom
+        fullAddress:
+          type: boolean
+          description: Always true — complete address data is returned
+          example: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressModel'
+
+    AddressModel:
+      type: object
+      description: >
+        A single delivery point address in Royal Mail PAF format.
+        All fields are present; optional PAF fields are empty strings when not applicable.
+      required:
+        - formattedAddress
+        - organisationName
+        - departmentName
+        - poBox
+        - subBuildingName
+        - buildingName
+        - buildingNumber
+        - dependentThoroughfare
+        - thoroughfare
+        - doubleDependentLocality
+        - dependentLocality
+        - postTown
+        - postcode
+        - postcodeType
+        - suOrganisationIndicator
+        - deliveryPointSuffix
+        - udprn
+        - umprn
+      properties:
+        formattedAddress:
+          type: array
+          items:
+            type: string
+          description: Non-empty address lines in display order, following Royal Mail formatting rules
+          example:
+            - 10 Downing Street
+            - LONDON
+            - SW1A 2AA
+        organisationName:
+          type: string
+          description: Organisation name. Present for business addresses; empty string for residential.
+          example: ''
+        departmentName:
+          type: string
+          description: Department name within the organisation. Empty string when not applicable.
+          example: ''
+        poBox:
+          type: string
+          description: >
+            PO Box number. Present only for Large User records (postcodeType = 'L').
+            Empty string for standard Small User addresses.
+          example: ''
+        subBuildingName:
+          type: string
+          description: Sub-building name (e.g. "FLAT 2", "GROUND FLOOR")
+          example: ''
+        buildingName:
+          type: string
+          description: Building name (e.g. "VICTORIA HOUSE")
+          example: ''
+        buildingNumber:
+          type: string
+          description: Building number
+          example: '10'
+        dependentThoroughfare:
+          type: string
+          description: Dependent thoroughfare (secondary street name)
+          example: ''
+        thoroughfare:
+          type: string
+          description: Street name
+          example: DOWNING STREET
+        doubleDependentLocality:
+          type: string
+          description: Double dependent locality (hamlet or area within a village)
+          example: ''
+        dependentLocality:
+          type: string
+          description: Dependent locality (village or area within a post town)
+          example: ''
+        postTown:
+          type: string
+          description: Post town (Royal Mail delivery town)
+          example: LONDON
+        postcode:
+          type: string
+          description: Full postcode
+          example: SW1A 2AA
+        postcodeType:
+          type: string
+          description: >
+            'S' for Small User (residential or small business) or
+            'L' for Large User (organisations with a dedicated PO Box postcode).
+          enum: ['S', 'L']
+          example: S
+        suOrganisationIndicator:
+          type: string
+          description: >
+            'Y' if this is a Small User organisation address (business at a residential-style postcode).
+            Empty string otherwise.
+          example: ''
+        deliveryPointSuffix:
+          type: string
+          description: Two-character delivery point suffix (e.g. "1A")
+          example: '1A'
+        udprn:
+          type: string
+          description: >
+            Unique Delivery Point Reference Number (up to 8 digits).
+            Empty string for non-PAF sources.
+          example: '12345678'
+        umprn:
+          type: string
+          description: >
+            Unique Multiple Residence Point Reference Number.
+            Empty string for standard (non-MR) PAF records.
+          example: ''
+
+    # -------------------------------------------------------------------------
+    # Autocomplete
+    # -------------------------------------------------------------------------
+
+    AutocompleteResponse:
+      type: object
+      required:
+        - status
+        - query
+        - countryCode
+        - country
+        - total
+        - results
+      properties:
+        status:
+          type: integer
+          example: 200
+        query:
+          type: string
+          description: Original query string as supplied by the caller
+          example: SW1A
+        countryCode:
+          type: string
+          example: GB
+        country:
+          type: string
+          example: United Kingdom
+        total:
+          type: integer
+          description: Number of results returned (≤ limit)
+          example: 2
+        results:
+          type: array
+          description: Matching postcodes in display format (outward + space + inward)
+          items:
+            type: string
+          example:
+            - SW1A 1AA
+            - SW1A 2AA
+
+    AutocompleteErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Query must be at least 2 characters
+        query:
+          type: string
+          description: Original query string (present on some error variants)
+
+    # -------------------------------------------------------------------------
+    # Health
+    # -------------------------------------------------------------------------
+
+    HealthResponse:
+      type: object
+      required: [status, uptime, dataset, memory]
+      properties:
+        status:
+          type: string
+          example: ok
+        uptime:
+          type: number
+          description: Process uptime in seconds
+          example: 12345
+        dataset:
+          type: object
+          required: [version, rows, distinctPostcodes, builtAt]
+          properties:
+            version:
+              type: string
+              description: Dataset version string set at build time
+              example: paf-2026-02
+            rows:
+              type: integer
+              description: Total address records in the loaded dataset
+              example: 40123456
+            distinctPostcodes:
+              type: integer
+              description: Total distinct postcodes in the loaded dataset
+              example: 1789012
+            builtAt:
+              type: string
+              format: date-time
+              description: Timestamp when the binary dataset was built
+              example: '2026-02-15T10:30:00.000Z'
+            mulRes:
+              type: object
+              nullable: true
+              description: >
+                Multiple Residence dataset metadata. `null` when the MR dataset
+                was not built or is not present.
+              required: [rows, distinctUdprns]
+              properties:
+                rows:
+                  type: integer
+                  description: Total MR unit records
+                  example: 1234567
+                distinctUdprns:
+                  type: integer
+                  description: Number of parent delivery points with MR records
+                  example: 456789
+        memory:
+          type: object
+          required: [heapUsed, heapTotal, rss]
+          properties:
+            heapUsed:
+              type: integer
+              description: V8 heap used (MB)
+              example: 2048
+            heapTotal:
+              type: integer
+              description: V8 heap total allocated (MB)
+              example: 4096
+            rss:
+              type: integer
+              description: Process RSS — total memory (MB)
+              example: 4500
+
+    MemoryResponse:
+      type: object
+      properties:
+        uptime:
+          type: number
+          description: Process uptime in seconds
+        heap:
+          type: object
+          properties:
+            usedMB:
+              type: integer
+            totalMB:
+              type: integer
+            limitMB:
+              type: integer
+              description: V8 heap size limit (from --max-old-space-size)
+            availableMB:
+              type: integer
+            usedPercent:
+              type: number
+              description: Heap used as percentage of heap total
+            totalUsedPercent:
+              type: number
+              description: Heap used as percentage of heap limit
+        process:
+          type: object
+          properties:
+            rssMB:
+              type: integer
+            externalMB:
+              type: integer
+            arrayBuffersMB:
+              type: integer
+        heapSpaces:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                example: old_space
+              sizeMB:
+                type: integer
+              usedMB:
+                type: integer
+              availableMB:
+                type: integer
+              physicalMB:
+                type: integer
+        statistics:
+          type: object
+          properties:
+            totalHeapSizeMB:
+              type: integer
+            totalHeapSizeExecutableMB:
+              type: integer
+            totalPhysicalSizeMB:
+              type: integer
+            totalAvailableSizeMB:
+              type: integer
+            mallocedMemoryMB:
+              type: integer
+            peakMallocedMemoryMB:
+              type: integer
+            doesZapGarbage:
+              type: integer
+              description: V8 internal flag (0 or 1)

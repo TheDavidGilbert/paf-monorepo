@@ -585,7 +585,7 @@ Create an ADR for:
    # Check version and row count
 
    # Test known postcodes
-   curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+   curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
    ```
 
 5. **Deploy**
@@ -802,7 +802,7 @@ node packages/api/dist/server.js # Start production server
 
 # Debugging
 curl http://localhost:3000/health
-curl "http://localhost:3000/address?country=GB&postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
 ```
 
 ### Key Files

@@ -46,9 +46,34 @@
       "key": "subBuildingName"
     },
     {
+      "csvIndex": 9,
+      "csvName": "PO Box",
+      "key": "poBox"
+    },
+    {
+      "csvIndex": 10,
+      "csvName": "Department Name",
+      "key": "departmentName"
+    },
+    {
+      "csvIndex": 11,
+      "csvName": "Organisation Name",
+      "key": "organisationName"
+    },
+    {
       "csvIndex": 12,
       "csvName": "UDPRN",
       "key": "udprn"
+    },
+    {
+      "csvIndex": 13,
+      "csvName": "Postcode Type",
+      "key": "postcodeType"
+    },
+    {
+      "csvIndex": 14,
+      "csvName": "SU Organisation Indicator",
+      "key": "suOrganisationIndicator"
     },
     {
       "csvIndex": 15,
