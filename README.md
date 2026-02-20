@@ -711,7 +711,6 @@ requiring special test environments.
 
 - Verify your domain is in the allowed origins list
 - Check server logs to confirm CORS headers are being sent
-- Ensure you're using `https://` for ATG Tickets domains
 
 **Binary file corruption**
 
