@@ -11,6 +11,16 @@ and this project adheres to
 
 ### Added
 
+- Multiple Residence (MR) data support:
+  - Builder auto-discovers `CSV MULRES/CSV Multiple Residence.csv` alongside the base PAF file
+  - Builds a 5-file binary index (`mrRows.bin`, `mrRowStart.bin`, `mrUdprn.bin`, `mrStart.bin`, `mrEnd.bin`) keyed by zero-padded UDPRN for O(log n) binary search
+  - Checksums written into `meta.json` under a `mulRes` key
+  - API loads the MR index at startup (graceful no-op if files absent)
+  - Postcode lookups suppress parent delivery points that have MR children and expand to individual unit records (e.g. "FLAT 1, 37 ACACIA AVENUE" instead of "37 ACACIA AVENUE")
+  - `/health` response surfaces `dataset.mulRes` statistics when MR data is loaded
+  - Fully backward-compatible: a build without the MR CSV produces no `mr*.bin` files and API behaviour is unchanged
+- `udprn` and `umprn` string fields on `AddressModel` so consumers can identify and cross-reference individual delivery points and MR units
+- README for Royal Mail input files explaining licensing requirements, expected directory structure, and setup instructions
 - `/health/memory` endpoint with detailed memory statistics:
   - Heap usage (used, total, limit, available, percentages)
   - Process memory (RSS, external memory, array buffers)
@@ -63,6 +73,7 @@ and this project adheres to
 
 ### Changed
 
+- `.gitignore` updated to exclude `paf-documentation/` (proprietary Royal Mail PDF) and `.claude/` (Claude Code session data and worktrees)
 - **License updated to MIT**: Changed to open source MIT license for public use
 - CORS configuration now defaults to localhost only with documentation for adding custom domains
 - Updated all documentation references from OWNER.md to CODEOWNER.md across:
@@ -92,6 +103,8 @@ and this project adheres to
 
 ### Removed
 
+- Royal Mail CSV data files removed from repository tracking; users must obtain their own Royal Mail PAF licence and supply data locally
+- Internal company references removed from documentation to protect proprietary assets
 - Tracked coverage files from git (38 files from packages/api/coverage and packages/builder/coverage)
 - Coverage artifacts now regenerated on test runs and properly ignored
 
