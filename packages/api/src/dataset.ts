@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Address, MRRecord, Meta, Schema } from './types.js';
+import { formatPostcodeKey } from './postcode.js';
 
 interface Dataset {
   rows: Buffer;
@@ -112,14 +113,15 @@ export function decodeRow(rowIndex: number): Address {
   const ds = getDataset();
   const offset = ds.rowStart[rowIndex];
 
-  // Read 11 uint16 lengths (22 bytes)
+  // Read field lengths from header (fieldCount x uint16)
+  const fieldCount = ds.schema.fieldOrder.length;
   const lengths: number[] = [];
-  for (let i = 0; i < 11; i++) {
+  for (let i = 0; i < fieldCount; i++) {
     lengths.push(ds.rows.readUInt16LE(offset + i * 2));
   }
 
   // Read field payloads
-  let payloadOffset = offset + 22;
+  let payloadOffset = offset + fieldCount * 2;
   const fieldValues: string[] = [];
 
   for (const len of lengths) {
@@ -143,8 +145,13 @@ export function decodeRow(rowIndex: number): Address {
     buildingNumber: fieldValues[6] ?? '',
     buildingName: fieldValues[7] ?? '',
     subBuildingName: fieldValues[8] ?? '',
-    udprn: fieldValues[9] ?? '',
-    deliveryPointSuffix: fieldValues[10] ?? '',
+    poBox: fieldValues[9] ?? '',
+    departmentName: fieldValues[10] ?? '',
+    organisationName: fieldValues[11] ?? '',
+    udprn: fieldValues[12] ?? '',
+    postcodeType: fieldValues[13] ?? '',
+    suOrganisationIndicator: fieldValues[14] ?? '',
+    deliveryPointSuffix: fieldValues[15] ?? '',
   };
 
   return address;
@@ -176,7 +183,11 @@ export function loadMRDataset(dataDir: string): void {
 
   mrDataset = {
     mrRows,
-    mrRowStart: new Uint32Array(mrRowStartBuf.buffer, mrRowStartBuf.byteOffset, mrRowStartBuf.byteLength / 4),
+    mrRowStart: new Uint32Array(
+      mrRowStartBuf.buffer,
+      mrRowStartBuf.byteOffset,
+      mrRowStartBuf.byteLength / 4
+    ),
     mrUdprn,
     mrStart: new Uint32Array(mrStartBuf.buffer, mrStartBuf.byteOffset, mrStartBuf.byteLength / 4),
     mrEnd: new Uint32Array(mrEndBuf.buffer, mrEndBuf.byteOffset, mrEndBuf.byteLength / 4),
@@ -229,6 +240,66 @@ export function findMRRange(udprn8: string): [number, number] | null {
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Prefix search
+// ---------------------------------------------------------------------------
+
+/**
+ * Search for distinct postcodes whose binary key begins with the given prefix.
+ *
+ * `prefix` must be already normalised: uppercase, no spaces, 1–7 characters.
+ * Uses a binary search to locate the first matching key in `distinctPcKey`,
+ * then scans forward collecting up to `limit` results.
+ *
+ * Because keys are stored as 7-byte space-padded strings sorted
+ * lexicographically, padding the prefix with spaces (ASCII 32, which is less
+ * than any digit or letter) guarantees that the binary search lands at the
+ * first key that begins with `prefix`.
+ *
+ * Returns formatted postcodes (e.g. "SW1A 1AA") rather than raw keys.
+ */
+export function searchPostcodePrefix(prefix: string, limit: number): string[] {
+  const ds = getDataset();
+  const totalKeys = ds.distinctPcKey.length / 7;
+  const results: string[] = [];
+
+  if (totalKeys === 0 || prefix.length === 0) return results;
+
+  // Pad the prefix to 7 bytes with spaces so binary search finds the first
+  // key >= "prefix" (e.g. "SW1A   " < "SW1A1AA" because space < '1').
+  const searchKey = prefix.padEnd(7, ' ');
+  const searchBuf = Buffer.from(searchKey, 'utf-8');
+
+  // Binary search: find the smallest index where key >= searchKey.
+  let left = 0;
+  let right = totalKeys - 1;
+  let startIndex = totalKeys; // sentinel: "not found"
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const midKey = ds.distinctPcKey.subarray(mid * 7, mid * 7 + 7);
+
+    if (searchBuf.compare(midKey) <= 0) {
+      startIndex = mid;
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+
+  // Linear scan from startIndex, collecting keys that start with the prefix.
+  for (let i = startIndex; i < totalKeys && results.length < limit; i++) {
+    const keyBuf = ds.distinctPcKey.subarray(i * 7, i * 7 + 7);
+    const keyStr = keyBuf.toString('utf-8');
+
+    if (!keyStr.startsWith(prefix)) break;
+
+    results.push(formatPostcodeKey(keyStr));
+  }
+
+  return results;
+}
+
 /**
  * Decode a single MR row at the given row index.
  * MR row format: [4 × uint16 field lengths (8 bytes)] + [variable UTF-8 payloads]
@@ -252,7 +323,9 @@ export function decodeMRRow(rowIndex: number): MRRecord {
     if (len === 0) {
       fieldValues.push('');
     } else {
-      fieldValues.push(mrDataset.mrRows.subarray(payloadOffset, payloadOffset + len).toString('utf-8'));
+      fieldValues.push(
+        mrDataset.mrRows.subarray(payloadOffset, payloadOffset + len).toString('utf-8')
+      );
       payloadOffset += len;
     }
   }

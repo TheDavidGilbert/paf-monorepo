@@ -1,0 +1,30 @@
+# Version control
+.git/
+
+# Dependencies (reinstalled in build stage)
+node_modules/
+**/node_modules/
+
+# TypeScript output (compiled in build stage)
+packages/*/dist/
+
+# Test coverage
+packages/*/coverage/
+
+# Builder input CSV files (licensed data, not for container)
+packages/builder/input/**/*.csv
+
+# Builder output directory
+packages/builder/out/
+
+# Development and editor files
+.claude/
+.vscode/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PAF documentation (proprietary)
+paf-documentation/

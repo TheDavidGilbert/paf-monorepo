@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as members, contributors, and leaders of this innersource project pledge to
+We as members, contributors, and leaders of this open source project pledge to
 make participation in our community a harassment-free experience for everyone,
 regardless of age, body size, visible or invisible disability, ethnicity, sex
 characteristics, gender identity and expression, level of experience, education,
@@ -76,7 +76,8 @@ communicate reasons for moderation decisions when appropriate.
 If you experience or witness unacceptable behaviour, or have any other concerns,
 please report it by contacting:
 
-1. **Project Owners**: See [CODEOWNER.md](CODEOWNER.md) for current owner contacts
+1. **Project Owners**: See [CODEOWNER.md](CODEOWNER.md) for current owner
+   contacts
 2. **Email**: conduct@company.com (monitored by HR and project leadership)
 3. **Direct Message**: Any project owner in Slack
 
@@ -153,16 +154,15 @@ If you believe you have been sanctioned unfairly:
 3. Appeals will be reviewed by individuals not involved in the original decision
 4. Decision on appeal will be final
 
-## Innersource Context
+## Community Context
 
-As an internal innersource project:
+As an open source project:
 
 - We operate with **trust and transparency**
 - We encourage **healthy debate** while remaining respectful
-- We recognise that contributors come from **different teams with different
-  priorities**
+- We recognise that contributors come from **different backgrounds with
+  different priorities**
 - We **assume good intent** and seek to understand before judging
-- We balance **team autonomy** with **shared standards**
 - We value **collaboration over competition**
 
 ## Our Responsibilities
@@ -195,11 +195,8 @@ As an internal innersource project:
 
 ## Attribution
 
-This Code of Conduct is adapted from:
-
-- [Contributor Covenant](https://www.contributor-covenant.org), version 2.1
-- [InnerSource Commons Code of Conduct](https://innersourcecommons.org/community/code-of-conduct/)
-- Company values and policies
+This Code of Conduct is adapted from the
+[Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
 
 ## Questions?
 
