@@ -1,7 +1,14 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 import { isValidUkPostcode, normalisePostcodeForKey } from '../postcode.js';
-import { findPostcodeRange, decodeRow, findMRRange, decodeMRRow, padUdprn, hasMRData } from '../dataset.js';
+import {
+  findPostcodeRange,
+  decodeRow,
+  findMRRange,
+  decodeMRRow,
+  padUdprn,
+  hasMRData,
+} from '../dataset.js';
 import { createSearchResponse } from '../models/searchResponse.js';
 import { mapToAddressModel, mapMRToAddressModel } from '../mappers/addressMapper.js';
 
@@ -180,7 +187,9 @@ export function lookupRoute(fastify: FastifyInstance): void {
     }
 
     // Log lookup request
-    console.log(JSON.stringify({ postcode: key7.trim(), count: addressModels.length, found: true }));
+    console.log(
+      JSON.stringify({ postcode: key7.trim(), count: addressModels.length, found: true })
+    );
 
     // Create successful response
     setCacheHeaders(200);

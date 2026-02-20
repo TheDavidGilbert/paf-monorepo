@@ -1,8 +1,7 @@
 # Service Ownership Guide
 
 This document outlines the responsibilities, processes, and best practices for
-owning and maintaining the PAF Address Lookup Service as an open source
-project.
+owning and maintaining the PAF Address Lookup Service as an open source project.
 
 ## Table of Contents
 
@@ -37,7 +36,8 @@ The PAF Address Lookup Service follows an open source ownership model where:
 | TBD  | Maintainer      | API, Integrations      | -       |
 | TBD  | Maintainer      | Data Pipeline, Builder | -       |
 
-**To become a maintainer, contribute quality PRs and engage with the community.**
+**To become a maintainer, contribute quality PRs and engage with the
+community.**
 
 ### Owner Rotation
 
@@ -334,9 +334,8 @@ pnpm update --latest
 > characteristics, recommended alerting thresholds, and monitoring setup.
 
 > **Deployment Note**: Service maintainers should configure monitoring
-> infrastructure (metrics collection, APM tools like New Relic/Datadog) in
-> their deployment environment. This section outlines recommended metrics to
-> track.
+> infrastructure (metrics collection, APM tools like New Relic/Datadog) in their
+> deployment environment. This section outlines recommended metrics to track.
 
 ### Key Metrics to Monitor
 

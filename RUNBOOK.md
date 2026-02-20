@@ -1,6 +1,7 @@
 # PAF Address Lookup Service - Operations Guide
 
-This guide covers common operational tasks for running the PAF Address Lookup Service.
+This guide covers common operational tasks for running the PAF Address Lookup
+Service.
 
 ## Table of Contents
 
@@ -13,13 +14,13 @@ This guide covers common operational tasks for running the PAF Address Lookup Se
 
 ## Service Endpoints
 
-| Endpoint                               | Purpose               | Expected Response            |
-| -------------------------------------- | --------------------- | ---------------------------- |
-| `/health`                              | Combined health check | 200 OK + dataset info        |
-| `/health/live`                         | Liveness probe        | 200 OK (always if running)   |
-| `/health/ready`                        | Readiness probe       | 200 OK (when ready to serve) |
-| `/lookup/postcode?postcode=SW1A1AA`    | Postcode lookup       | 200 OK + address data        |
-| `/lookup/autocomplete?q=SW1A`          | Postcode autocomplete | 200 OK + matching postcodes  |
+| Endpoint                            | Purpose               | Expected Response            |
+| ----------------------------------- | --------------------- | ---------------------------- |
+| `/health`                           | Combined health check | 200 OK + dataset info        |
+| `/health/live`                      | Liveness probe        | 200 OK (always if running)   |
+| `/health/ready`                     | Readiness probe       | 200 OK (when ready to serve) |
+| `/lookup/postcode?postcode=SW1A1AA` | Postcode lookup       | 200 OK + address data        |
+| `/lookup/autocomplete?q=SW1A`       | Postcode autocomplete | 200 OK + matching postcodes  |
 
 ## Architecture
 
@@ -29,10 +30,12 @@ Client → Load Balancer → Application Instance(s) → In-Memory Dataset
 
 **Key characteristics:**
 
-- **Application instances**: Node.js process with the full dataset loaded in memory
+- **Application instances**: Node.js process with the full dataset loaded in
+  memory
 - **Dataset**: Royal Mail PAF records read into RAM at startup (read-only)
 - **Startup time**: 2–12 seconds depending on dataset size
-- **No external dependencies**: No database, no cache — all data is in-process memory
+- **No external dependencies**: No database, no cache — all data is in-process
+  memory
 
 ## Common Operations
 
@@ -80,12 +83,12 @@ aws logs filter-log-events \
 
 **Key log messages:**
 
-| Message | Meaning |
-|---|---|
-| `Server listening on` | Successful startup |
-| `Dataset loaded:` | Dataset loaded successfully |
-| `Dataset not loaded` | Dataset loading failure |
-| `SIGTERM received` | Graceful shutdown initiated |
+| Message               | Meaning                     |
+| --------------------- | --------------------------- |
+| `Server listening on` | Successful startup          |
+| `Dataset loaded:`     | Dataset loaded successfully |
+| `Dataset not loaded`  | Dataset loading failure     |
+| `SIGTERM received`    | Graceful shutdown initiated |
 
 ### Check Service Status
 
@@ -113,19 +116,20 @@ aws ecs update-service \
   --desired-count 4
 ```
 
-Minimum 2 instances recommended for high availability. Each instance requires approximately 12 GB RAM for a production (40M record) dataset.
+Minimum 2 instances recommended for high availability. Each instance requires
+approximately 12 GB RAM for a production (40M record) dataset.
 
 ### Update Environment Variables
 
 **Key variables:**
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | HTTP server port |
-| `DATA_DIR` | `./data` | Path to binary data files |
-| `NODE_ENV` | — | Set to `production` |
-| `NODE_OPTIONS` | — | e.g. `--max-old-space-size=10240` |
-| `LOG_LEVEL` | `info` | `info` or `warn` |
+| Variable       | Default  | Description                       |
+| -------------- | -------- | --------------------------------- |
+| `PORT`         | `3000`   | HTTP server port                  |
+| `DATA_DIR`     | `./data` | Path to binary data files         |
+| `NODE_ENV`     | —        | Set to `production`               |
+| `NODE_OPTIONS` | —        | e.g. `--max-old-space-size=10240` |
+| `LOG_LEVEL`    | `info`   | `info` or `warn`                  |
 
 ```bash
 # Kubernetes — edit ConfigMap then restart
@@ -135,7 +139,8 @@ kubectl rollout restart deployment/paf-api -n <namespace>
 
 ## Dataset Updates
 
-The Royal Mail PAF dataset is updated monthly. Follow this process to deploy a new version.
+The Royal Mail PAF dataset is updated monthly. Follow this process to deploy a
+new version.
 
 ### 1. Build New Dataset
 
@@ -226,7 +231,8 @@ aws ecs update-service \
 
 ### High Memory Usage
 
-**Symptoms:** Memory significantly above expected (~9 GB for 40M records), OOM kills, frequent restarts.
+**Symptoms:** Memory significantly above expected (~9 GB for 40M records), OOM
+kills, frequent restarts.
 
 ```bash
 # Check current memory usage
@@ -240,6 +246,7 @@ curl http://localhost:3000/health | jq .memory
 ```
 
 **Solutions:**
+
 1. Verify dataset size — `rows.bin` should be roughly 7–9 GB for 40M records
 2. Check for memory leak in application logs
 3. Increase pod memory limit
@@ -259,13 +266,15 @@ kubectl top pods -l app=paf-api -n <namespace>
 ```
 
 **Solutions:**
+
 1. Scale out if CPU is high
 2. Verify binary files are not corrupted (`checksums` in `meta.json`)
 3. Check for a recent deployment that may have introduced a regression
 
 ### Dataset Not Loading
 
-**Symptoms:** Health check returns 503, error "Dataset not loaded", pods crash on startup.
+**Symptoms:** Health check returns 503, error "Dataset not loaded", pods crash
+on startup.
 
 ```bash
 # Check logs
@@ -276,6 +285,7 @@ kubectl exec <pod-name> -n <namespace> -- ls -lh /app/packages/api/data/
 ```
 
 **Solutions:**
+
 1. Confirm `DATA_DIR` environment variable points to the correct path
 2. Verify the Docker image includes the `data/` directory
 3. Check that the builder ran successfully and all files are present
@@ -294,6 +304,7 @@ curl http://localhost:3000/health/ready
 ```
 
 **Solutions:**
+
 1. Check for a recent deployment — rollback if so
 2. Verify the dataset is not corrupted
 3. Scale out if the issue is capacity-related
@@ -332,4 +343,5 @@ kubectl rollout restart deployment/paf-api -n <namespace>
 
 ---
 
-**See also:** [HOSTING.md](HOSTING.md) | [CONSUMER.md](CONSUMER.md) | [SECURITY.md](SECURITY.md)
+**See also:** [HOSTING.md](HOSTING.md) | [CONSUMER.md](CONSUMER.md) |
+[SECURITY.md](SECURITY.md)

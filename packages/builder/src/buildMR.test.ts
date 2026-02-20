@@ -22,12 +22,6 @@ describe('padUdprn', () => {
   it('should produce lexicographic order equal to numeric order', () => {
     const udprns = ['999', '1', '100', '20', '12345678'];
     const padded = udprns.map(padUdprn).sort();
-    expect(padded).toEqual([
-      '00000001',
-      '00000020',
-      '00000100',
-      '00000999',
-      '12345678',
-    ]);
+    expect(padded).toEqual(['00000001', '00000020', '00000100', '00000999', '12345678']);
   });
 });

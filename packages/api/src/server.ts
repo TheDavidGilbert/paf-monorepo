@@ -26,7 +26,7 @@ const fastify = Fastify({
 //   /^https:\/\/[\w-]+\.example\.com$/, // Pattern match
 await fastify.register(cors, {
   origin: [
-    /^https?:\/\/localhost:\d+$/,  // localhost on any port
+    /^https?:\/\/localhost:\d+$/, // localhost on any port
   ],
   credentials: true,
 });
@@ -119,7 +119,7 @@ fastify.get('/health/ready', async (request, reply) => {
 fastify.get('/health/memory', async (request, reply) => {
   const memUsage = process.memoryUsage();
   const heapUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-  
+
   // Get memory limit (max old space size)
   const v8 = await import('node:v8');
   const heapStats = v8.getHeapStatistics();
