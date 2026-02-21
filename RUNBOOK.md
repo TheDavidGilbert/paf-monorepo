@@ -25,6 +25,22 @@ curl http://localhost:3000/health/ready
 curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
 ```
 
+To restart with a changed `ENABLE_STREET_INDEX` setting, stop and re-run the
+container with the updated flag (a simple `docker restart` inherits the existing
+environment):
+
+```bash
+# Re-run with street index enabled
+docker stop paf-api && docker rm paf-api
+docker run -d \
+  --name paf-api \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e NODE_OPTIONS=--max-old-space-size=10240 \
+  -e ENABLE_STREET_INDEX=true \
+  paf-api:latest
+```
+
 ## Key Log Messages
 
 | Message                                | Meaning                                  |
@@ -113,10 +129,25 @@ The builder **always** generates the four thoroughfare index files
 
 ```bash
 pnpm --filter @paf/api build
+
+# Start without street index (default)
 pnpm --filter @paf/api start
+
+# Start with street index enabled (Unix / Git Bash)
+ENABLE_STREET_INDEX=true pnpm --filter @paf/api start
+
+# Start with street index enabled (PowerShell)
+$env:ENABLE_STREET_INDEX="true"; pnpm --filter @paf/api start
+
+# Start with street index enabled (Command Prompt)
+set ENABLE_STREET_INDEX=true && pnpm --filter @paf/api start
 
 curl http://localhost:3000/health
 curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
+
+# Verify street index status (dataset.streetIndex should be true when enabled)
+curl http://localhost:3000/health | grep streetIndex
+
 pnpm --filter @paf/api test
 ```
 

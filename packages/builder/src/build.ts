@@ -271,8 +271,12 @@ async function main() {
       const tf = (row.fieldValues[5] || row.fieldValues[4] || '').toUpperCase().trim();
       const bn = (row.fieldValues[6] || '').trim();
       if (tf) {
-        if (!thoroughfareMap.has(tf)) thoroughfareMap.set(tf, []);
-        thoroughfareMap.get(tf)!.push({ rowIndex: tfRowIndex, buildingNumber: bn });
+        let tfEntries = thoroughfareMap.get(tf);
+        if (!tfEntries) {
+          tfEntries = [];
+          thoroughfareMap.set(tf, tfEntries);
+        }
+        tfEntries.push({ rowIndex: tfRowIndex, buildingNumber: bn });
         totalTFEntries++;
       }
       tfRowIndex++;
@@ -301,7 +305,7 @@ async function main() {
   let sortedRowOffset = 0;
   for (let i = 0; i < sortedThoroughfares.length; i++) {
     const tf = sortedThoroughfares[i];
-    const entries = thoroughfareMap.get(tf)!;
+    const entries = thoroughfareMap.get(tf) ?? [];
 
     // Write space-padded key (truncate if somehow over limit)
     const keyStr = tf.substring(0, THOROUGHFARE_KEY_WIDTH);

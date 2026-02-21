@@ -254,11 +254,26 @@ The API will:
 
 - `PORT` - Server port (default: `3000`)
 - `DATA_DIR` - Path to binary data directory (default: `packages/api/data`)
+- `ENABLE_STREET_INDEX` - Load the thoroughfare index and enable
+  `GET /lookup/street` (default: `false`)
 
-Example:
+Examples:
 
 ```bash
+# Standard start (Unix / Git Bash)
 PORT=8080 DATA_DIR=/path/to/data pnpm start:api
+
+# Street search enabled (Unix / Git Bash)
+ENABLE_STREET_INDEX=true pnpm start:api
+ENABLE_STREET_INDEX=true pnpm dev:api
+
+# Street search enabled (PowerShell)
+$env:ENABLE_STREET_INDEX="true"; pnpm start:api
+$env:ENABLE_STREET_INDEX="true"; pnpm dev:api
+
+# Street search enabled (Command Prompt)
+set ENABLE_STREET_INDEX=true && pnpm start:api
+set ENABLE_STREET_INDEX=true && pnpm dev:api
 ```
 
 ### CORS Configuration
@@ -979,6 +994,9 @@ docker run -p 3000:3000 -m 2g paf-api:latest
 
 # Production (40M records)
 docker run -p 3000:3000 -m 12g paf-api:latest
+
+# Production with street search enabled (~215 MB extra RAM)
+docker run -p 3000:3000 -m 12g -e ENABLE_STREET_INDEX=true paf-api:latest
 ```
 
 ### Environment Variables
