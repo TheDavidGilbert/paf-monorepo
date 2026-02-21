@@ -74,18 +74,21 @@ This project consists of two packages:
 ### Key Features
 
 - **Fast lookups**: Binary search on sorted postcodes with O(log m) complexity
-- **Prefix autocomplete**: `GET /lookup/postcode` returns matching postcodes for
-  partial input (e.g. "SW1A" or "SW1A 1")
+- **Postcode autocomplete**: `GET /lookup/postcode` returns matching postcodes
+  for partial input (e.g. "SW1A" or "SW1A 1")
+- **Street search** _(optional)_: `GET /lookup/street` searches by thoroughfare
+  prefix and building number — enable with `ENABLE_STREET_INDEX=true`
 - **Compact storage**: Custom binary format optimised for memory efficiency
 - **Sorted results**: Addresses sorted by building number (alpha first, then
   numeric)
-- **CORS enabled**: Configured for localhost by default (easily customizable)
+- **CORS enabled**: Configured for localhost by default (easily customisable)
 - **Type-safe**: Full TypeScript implementation with strict mode
-- **Well-tested**: 97% test coverage with Jest (55 automated tests)
+- **Well-tested**: Jest test suite covering all routes, mappers, and dataset
+  logic (106 tests)
 - **Test helpers**: Special postcode patterns for generating test HTTP responses
 - **Production-ready**: Graceful shutdown, health checks, HTTP caching, and
   operational runbooks
-- **Code quality**: ESLint and Prettier configured for consistent code style
+- **Code quality**: ESLint, Prettier, and Husky pre-commit hooks configured
 
 ## Requirements
 
@@ -128,8 +131,9 @@ paf-monorepo/
         │   ├── postcode.ts
         │   ├── types.ts
         │   └── routes/
-        │       ├── lookup.ts
-        │       └── postcodes.ts
+        │       ├── address.ts
+        │       ├── postcode.ts
+        │       └── street.ts
         └── data/                       (binary assets location)
 ```
 
@@ -188,13 +192,18 @@ This will:
 
 1. Read `packages/builder/input/CSV PAF/CSV PAF.csv`
 2. Extract all 16 PAF fields and generate binary files in `packages/api/data/`:
-   - `rows.bin` - Compact row store
-   - `rowStart.bin` - Row offset index
-   - `distinctPcKey.bin` - Distinct postcode keys (sorted)
-   - `pcStart.bin` - Postcode range start indexes
-   - `pcEnd.bin` - Postcode range end indexes
-   - `schema.json` - Field schema
-   - `meta.json` - Metadata with checksums
+   - `rows.bin` — Compact row store
+   - `rowStart.bin` — Row offset index
+   - `distinctPcKey.bin` — Distinct postcode keys (sorted)
+   - `pcStart.bin` — Postcode range start indexes
+   - `pcEnd.bin` — Postcode range end indexes
+   - `schema.json` — Field schema
+   - `meta.json` — Metadata with checksums
+   - `thoroughfareKeys.bin` — Sorted thoroughfare keys (street search index)
+   - `thoroughfareStart.bin` — Thoroughfare range start indexes
+   - `thoroughfareEnd.bin` — Thoroughfare range end indexes
+   - `thoroughfareSortedRows.bin` — Row indexes sorted by thoroughfare and
+     building number
 3. If `packages/builder/input/CSV MULRES/CSV Multiple Residence.csv` is present,
    also generate Multiple Residence binary files:
    - `mrRows.bin` - MR unit row store
@@ -245,11 +254,26 @@ The API will:
 
 - `PORT` - Server port (default: `3000`)
 - `DATA_DIR` - Path to binary data directory (default: `packages/api/data`)
+- `ENABLE_STREET_INDEX` - Load the thoroughfare index and enable
+  `GET /lookup/street` (default: `false`)
 
-Example:
+Examples:
 
 ```bash
+# Standard start (Unix / Git Bash)
 PORT=8080 DATA_DIR=/path/to/data pnpm start:api
+
+# Street search enabled (Unix / Git Bash)
+ENABLE_STREET_INDEX=true pnpm start:api
+ENABLE_STREET_INDEX=true pnpm dev:api
+
+# Street search enabled (PowerShell)
+$env:ENABLE_STREET_INDEX="true"; pnpm start:api
+$env:ENABLE_STREET_INDEX="true"; pnpm dev:api
+
+# Street search enabled (Command Prompt)
+set ENABLE_STREET_INDEX=true && pnpm start:api
+set ENABLE_STREET_INDEX=true && pnpm dev:api
 ```
 
 ### CORS Configuration
@@ -572,16 +596,58 @@ curl "http://localhost:3000/lookup/postcode?q=SW1A&limit=5"
 with spaces removed before searching, so `"sw1a 1"` and `"SW1A1"` produce the
 same results.
 
-**Error Responses:**
+### Street Search _(optional feature)_
 
-- **400 Bad Request** - Missing, too short, or invalid query
+Requires `ENABLE_STREET_INDEX=true` and a rebuilt dataset. Returns 503 when not
+enabled.
 
-  ```json
-  {
-    "status": 400,
-    "error": "Query must be at least 2 characters"
-  }
-  ```
+```bash
+GET /lookup/street?q=<query>&town=<town>&limit=<n>
+```
+
+**Query Parameters:**
+
+- `q` (required): Free-text query — building number + thoroughfare prefix (e.g.
+  `"38 Flora"`, `"Flora Court"`)
+- `town` (optional): Post town to filter results (e.g. `PLYMOUTH`)
+- `limit` (optional): Maximum results (1–50, default: 20)
+
+**Parsing rule:** if the first token is a building number (`38`, `38A`), it is
+used as a filter; the remainder is the thoroughfare prefix (minimum 3
+characters).
+
+**Example:**
+
+```bash
+curl "http://localhost:3000/lookup/street?q=38+Flora&town=PLYMOUTH"
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "status": 200,
+  "query": "38 Flora",
+  "countryCode": "GB",
+  "country": "United Kingdom",
+  "total": 1,
+  "results": [
+    {
+      "formattedAddress": ["38 FLORA COURT", "PLYMOUTH", "PL1 1LR"],
+      "buildingNumber": "38",
+      "thoroughfare": "FLORA COURT",
+      "postTown": "PLYMOUTH",
+      "postcode": "PL1 1LR",
+      "postcodeType": "S",
+      "udprn": "12345678",
+      "umprn": ""
+    }
+  ]
+}
+```
+
+> **Note:** PAF stores full street descriptors (`ROAD`, `STREET`, `AVENUE`,
+> `CLOSE`) — abbreviations will not match.
 
 ## Binary Format
 
@@ -593,7 +659,7 @@ All binary files use **little-endian** byte order.
 
 Each row consists of:
 
-1. **Header** (22 bytes): Eleven `uint16` values representing field lengths in
+1. **Header** (32 bytes): Sixteen `uint16` values representing field lengths in
    bytes
 2. **Payload**: Concatenated UTF-8 field bytes in fixed order
 
@@ -608,8 +674,13 @@ Field order:
 7. buildingNumber
 8. buildingName
 9. subBuildingName
-10. udprn
-11. deliveryPointSuffix
+10. poBox
+11. departmentName
+12. organisationName
+13. udprn
+14. postcodeType
+15. suOrganisationIndicator
+16. deliveryPointSuffix
 
 #### `rowStart.bin`
 
@@ -690,19 +761,12 @@ pnpm --filter @paf/api test
 
 #### Coverage
 
-- **Builder**: 97.05% coverage (26 tests)
-  - Postcode normalization
-  - Configuration parsing
-  - Checksum computation
-  - Binary I/O operations
+- **Builder**: 30 tests — postcode normalisation, configuration parsing,
+  checksum computation, binary I/O, MR index building
+- **API**: 76 tests — postcode validation, address mapping, response formatting,
+  all three routes with mocked dataset (including street search)
 
-- **API**: 90.26% coverage (29 tests)
-  - Postcode validation
-  - Response formatting
-  - Address mapping
-  - API routes with mocked dataset
-
-**Total: 55 tests**
+**Total: 106 tests**
 
 ### Manual API Testing
 
@@ -726,6 +790,9 @@ curl "http://localhost:3000/lookup/address?postcode=ZZ99%209ZZ"
 
 # Autocomplete prefix search
 curl "http://localhost:3000/lookup/postcode?q=PL1"
+
+# Street search (requires ENABLE_STREET_INDEX=true)
+curl "http://localhost:3000/lookup/street?q=38+Flora&town=PLYMOUTH"
 ```
 
 ### Test Response Generation
@@ -833,8 +900,10 @@ Generate Binary Files:
   - rows.bin (compact row storage)
   - rowStart.bin (row offsets)
   - distinctPcKey.bin (sorted postcode keys)
-  - pcStart.bin, pcEnd.bin (range indexes)
-  - schema.json, meta.json (metadata)
+  - pcStart.bin, pcEnd.bin (postcode range indexes)
+  - thoroughfareKeys.bin (sorted thoroughfare keys — street search index)
+  - thoroughfareStart.bin, thoroughfareEnd.bin, thoroughfareSortedRows.bin
+  - schema.json, meta.json (metadata + checksums)
 ```
 
 **Key Design Decisions:**
@@ -925,17 +994,21 @@ docker run -p 3000:3000 -m 2g paf-api:latest
 
 # Production (40M records)
 docker run -p 3000:3000 -m 12g paf-api:latest
+
+# Production with street search enabled (~215 MB extra RAM)
+docker run -p 3000:3000 -m 12g -e ENABLE_STREET_INDEX=true paf-api:latest
 ```
 
 ### Environment Variables
 
-| Variable       | Default             | Description                                                            |
-| -------------- | ------------------- | ---------------------------------------------------------------------- |
-| `PORT`         | `3000`              | HTTP server port                                                       |
-| `DATA_DIR`     | `packages/api/data` | Path to binary data files                                              |
-| `NODE_ENV`     | -                   | Set to `production` for production deployments                         |
-| `NODE_OPTIONS` | -                   | Node.js options. Production: `--max-old-space-size=10240` (10 GB heap) |
-| `LOG_LEVEL`    | `info`              | Logging level (`info`, `warn`, `error`)                                |
+| Variable              | Default             | Description                                                                  |
+| --------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `PORT`                | `3000`              | HTTP server port                                                             |
+| `DATA_DIR`            | `packages/api/data` | Path to binary data files                                                    |
+| `NODE_ENV`            | —                   | Set to `production` for production deployments                               |
+| `NODE_OPTIONS`        | —                   | Node.js options. Production: `--max-old-space-size=10240` (10 GB heap)       |
+| `LOG_LEVEL`           | `info`              | Logging level (`info`, `warn`, `error`)                                      |
+| `ENABLE_STREET_INDEX` | `false`             | Set to `true` to load the thoroughfare index and enable `GET /lookup/street` |
 
 ## Performance Characteristics
 
@@ -979,17 +1052,15 @@ pnpm format:check
 pnpm format
 ```
 
-**Pre-commit Recommendations:**
+**Pre-commit hooks:**
 
-While not enforced automatically, it's recommended to run before committing:
+Husky is configured to run the following automatically on every commit:
 
 ```bash
 pnpm lint:fix
 pnpm format
 pnpm test
 ```
-
-Consider setting up a pre-commit hook (e.g., with husky) to automate this.
 
 ### Development Dependencies
 

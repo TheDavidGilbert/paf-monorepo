@@ -22,8 +22,19 @@ interface MRDataset {
   mrEnd: Uint32Array;
 }
 
+/** Fixed byte width for each thoroughfare key in thoroughfareKeys.bin. Must match builder. */
+const THOROUGHFARE_KEY_WIDTH = 80;
+
+interface ThoroughfareDataset {
+  thoroughfareKeys: Buffer; // N × THOROUGHFARE_KEY_WIDTH bytes, space-padded, sorted
+  thoroughfareStart: Uint32Array; // N uint32s — start index in thoroughfareSortedRows
+  thoroughfareEnd: Uint32Array; // N uint32s — end index (exclusive) in thoroughfareSortedRows
+  thoroughfareSortedRows: Uint32Array; // M uint32s — row indices sorted by thoroughfare then buildingNumber
+}
+
 let dataset: Dataset | null = null;
 let mrDataset: MRDataset | null = null;
+let thoroughfareDataset: ThoroughfareDataset | null = null;
 
 /**
  * Load binary assets into memory synchronously.
@@ -295,6 +306,131 @@ export function searchPostcodePrefix(prefix: string, limit: number): string[] {
     if (!keyStr.startsWith(prefix)) break;
 
     results.push(formatPostcodeKey(keyStr));
+  }
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Street (thoroughfare) index
+// ---------------------------------------------------------------------------
+
+/**
+ * Load the secondary thoroughfare index from the four binary files written by
+ * the builder. This is optional — only call it when ENABLE_STREET_INDEX=true.
+ * If the files are absent this throws; callers should treat the error as non-fatal.
+ */
+export function loadThoroughfareIndex(dataDir: string): void {
+  console.log('Loading thoroughfare (street) index...');
+
+  const keysBuf = readFileSync(join(dataDir, 'thoroughfareKeys.bin'));
+  const startBuf = readFileSync(join(dataDir, 'thoroughfareStart.bin'));
+  const endBuf = readFileSync(join(dataDir, 'thoroughfareEnd.bin'));
+  const sortedRowsBuf = readFileSync(join(dataDir, 'thoroughfareSortedRows.bin'));
+
+  thoroughfareDataset = {
+    thoroughfareKeys: keysBuf,
+    thoroughfareStart: new Uint32Array(
+      startBuf.buffer,
+      startBuf.byteOffset,
+      startBuf.byteLength / 4
+    ),
+    thoroughfareEnd: new Uint32Array(endBuf.buffer, endBuf.byteOffset, endBuf.byteLength / 4),
+    thoroughfareSortedRows: new Uint32Array(
+      sortedRowsBuf.buffer,
+      sortedRowsBuf.byteOffset,
+      sortedRowsBuf.byteLength / 4
+    ),
+  };
+
+  const distinctCount = keysBuf.length / THOROUGHFARE_KEY_WIDTH;
+  console.log(`Thoroughfare index loaded: ${distinctCount} distinct thoroughfares`);
+}
+
+/**
+ * Returns true if the thoroughfare index has been loaded.
+ */
+export function hasThoroughfareIndex(): boolean {
+  return thoroughfareDataset !== null;
+}
+
+/**
+ * Search for addresses by thoroughfare prefix and optional building number / town filters.
+ *
+ * @param thoroughfarePrefix  Normalised (uppercase, trimmed) thoroughfare prefix, min 3 chars.
+ * @param buildingNumber      Optional building number prefix to filter on (uppercase, trimmed).
+ * @param town                Optional post town to filter on (uppercase, trimmed).
+ * @param limit               Maximum number of Address records to return.
+ *
+ * Uses binary search to find the first thoroughfare key ≥ the prefix, then scans
+ * forward collecting addresses from each matching thoroughfare's sorted row range
+ * until the result limit is reached.
+ */
+export function searchByAddressPrefix(
+  thoroughfarePrefix: string,
+  buildingNumber: string | null,
+  town: string | null,
+  limit: number
+): Address[] {
+  if (!thoroughfareDataset) throw new Error('Thoroughfare index not loaded');
+
+  const tf = thoroughfareDataset;
+  const totalKeys = tf.thoroughfareKeys.length / THOROUGHFARE_KEY_WIDTH;
+  const results: Address[] = [];
+
+  if (totalKeys === 0) return results;
+
+  // Pad prefix with spaces to full key width so binary search finds the
+  // first stored key that is >= the padded prefix (space < any letter/digit).
+  const searchKey = thoroughfarePrefix.padEnd(THOROUGHFARE_KEY_WIDTH, ' ');
+  const searchBuf = Buffer.from(searchKey, 'utf-8');
+
+  // Binary search: find the smallest index i where thoroughfareKeys[i] >= searchBuf.
+  let left = 0;
+  let right = totalKeys - 1;
+  let startIndex = totalKeys; // sentinel
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    const midKey = tf.thoroughfareKeys.subarray(
+      mid * THOROUGHFARE_KEY_WIDTH,
+      (mid + 1) * THOROUGHFARE_KEY_WIDTH
+    );
+    if (searchBuf.compare(midKey) <= 0) {
+      startIndex = mid;
+      right = mid - 1;
+    } else {
+      left = mid + 1;
+    }
+  }
+
+  // Scan forward through all thoroughfare keys that start with the prefix.
+  for (let i = startIndex; i < totalKeys && results.length < limit; i++) {
+    const keyBuf = tf.thoroughfareKeys.subarray(
+      i * THOROUGHFARE_KEY_WIDTH,
+      (i + 1) * THOROUGHFARE_KEY_WIDTH
+    );
+
+    // Check the first `prefix.length` bytes match (no trimEnd needed).
+    const keyPrefix = keyBuf.toString('utf-8', 0, thoroughfarePrefix.length);
+    if (keyPrefix !== thoroughfarePrefix) break;
+
+    // Walk this thoroughfare's sorted row range.
+    const rowStart = tf.thoroughfareStart[i];
+    const rowEnd = tf.thoroughfareEnd[i];
+
+    for (let j = rowStart; j < rowEnd && results.length < limit; j++) {
+      const rowIndex = tf.thoroughfareSortedRows[j];
+      const address = decodeRow(rowIndex);
+
+      // Filter: building number prefix match (e.g. "38" matches "38", "38A", "38B")
+      if (buildingNumber && !address.buildingNumber.startsWith(buildingNumber)) continue;
+
+      // Filter: exact post town match
+      if (town && address.postTown !== town) continue;
+
+      results.push(address);
+    }
   }
 
   return results;

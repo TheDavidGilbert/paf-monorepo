@@ -4,13 +4,21 @@ import { dirname, join } from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 
-import { loadDataset, loadMRDataset, getDataset } from './dataset.js';
+import {
+  loadDataset,
+  loadMRDataset,
+  loadThoroughfareIndex,
+  hasThoroughfareIndex,
+  getDataset,
+} from './dataset.js';
 import { addressRoute } from './routes/address.js';
 import { postcodeRoute } from './routes/postcode.js';
+import { streetRoute } from './routes/street.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const DATA_DIR = process.env.DATA_DIR ?? join(__dirname, '..', 'data');
+const ENABLE_STREET_INDEX = process.env.ENABLE_STREET_INDEX === 'true';
 
 const fastify = Fastify({
   logger: {
@@ -46,6 +54,7 @@ fastify.get('/health', async (request, reply) => {
         mulRes: ds.meta.mulRes
           ? { rows: ds.meta.mulRes.rows, distinctUdprns: ds.meta.mulRes.distinctUdprns }
           : null,
+        streetIndex: hasThoroughfareIndex(),
       },
       memory: {
         heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
@@ -164,6 +173,7 @@ fastify.get('/health/memory', async (request, reply) => {
 // Register routes
 await fastify.register(addressRoute);
 await fastify.register(postcodeRoute);
+await fastify.register(streetRoute);
 
 // Load dataset before starting server
 try {
@@ -178,6 +188,17 @@ try {
   loadMRDataset(DATA_DIR);
 } catch (err) {
   console.warn('MR dataset load failed (non-fatal):', err);
+}
+
+// Load street (thoroughfare) index only when explicitly enabled
+if (ENABLE_STREET_INDEX) {
+  try {
+    loadThoroughfareIndex(DATA_DIR);
+  } catch (err) {
+    console.warn('Street index load failed (non-fatal):', err);
+  }
+} else {
+  console.log('Street search index disabled (set ENABLE_STREET_INDEX=true to enable)');
 }
 
 // Start server
