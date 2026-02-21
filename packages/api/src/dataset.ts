@@ -26,9 +26,9 @@ interface MRDataset {
 const THOROUGHFARE_KEY_WIDTH = 80;
 
 interface ThoroughfareDataset {
-  thoroughfareKeys: Buffer;           // N × THOROUGHFARE_KEY_WIDTH bytes, space-padded, sorted
-  thoroughfareStart: Uint32Array;     // N uint32s — start index in thoroughfareSortedRows
-  thoroughfareEnd: Uint32Array;       // N uint32s — end index (exclusive) in thoroughfareSortedRows
+  thoroughfareKeys: Buffer; // N × THOROUGHFARE_KEY_WIDTH bytes, space-padded, sorted
+  thoroughfareStart: Uint32Array; // N uint32s — start index in thoroughfareSortedRows
+  thoroughfareEnd: Uint32Array; // N uint32s — end index (exclusive) in thoroughfareSortedRows
   thoroughfareSortedRows: Uint32Array; // M uint32s — row indices sorted by thoroughfare then buildingNumber
 }
 
@@ -330,7 +330,11 @@ export function loadThoroughfareIndex(dataDir: string): void {
 
   thoroughfareDataset = {
     thoroughfareKeys: keysBuf,
-    thoroughfareStart: new Uint32Array(startBuf.buffer, startBuf.byteOffset, startBuf.byteLength / 4),
+    thoroughfareStart: new Uint32Array(
+      startBuf.buffer,
+      startBuf.byteOffset,
+      startBuf.byteLength / 4
+    ),
     thoroughfareEnd: new Uint32Array(endBuf.buffer, endBuf.byteOffset, endBuf.byteLength / 4),
     thoroughfareSortedRows: new Uint32Array(
       sortedRowsBuf.buffer,

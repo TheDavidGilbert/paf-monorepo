@@ -5,13 +5,13 @@ Docker instance.
 
 ## Service Endpoints
 
-| Endpoint                               | Purpose               | Expected Response                              |
-| -------------------------------------- | --------------------- | ---------------------------------------------- |
-| `GET /health`                          | Combined health check | 200 OK + dataset info                          |
-| `GET /health/live`                     | Liveness probe        | 200 OK (always if running)                     |
-| `GET /health/ready`                    | Readiness probe       | 200 OK (when dataset ready)                    |
-| `GET /lookup/address?postcode=SW1A1AA` | Postcode lookup       | 200 OK + address data                          |
-| `GET /lookup/postcode?q=SW1A`          | Postcode autocomplete | 200 OK + matching postcodes                    |
+| Endpoint                               | Purpose               | Expected Response                               |
+| -------------------------------------- | --------------------- | ----------------------------------------------- |
+| `GET /health`                          | Combined health check | 200 OK + dataset info                           |
+| `GET /health/live`                     | Liveness probe        | 200 OK (always if running)                      |
+| `GET /health/ready`                    | Readiness probe       | 200 OK (when dataset ready)                     |
+| `GET /lookup/address?postcode=SW1A1AA` | Postcode lookup       | 200 OK + address data                           |
+| `GET /lookup/postcode?q=SW1A`          | Postcode autocomplete | 200 OK + matching postcodes                     |
 | `GET /lookup/street?q=38+Flora`        | Street/address search | 200 OK + matching addresses; 503 if not enabled |
 
 ## Service Restart
@@ -27,23 +27,23 @@ curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
 
 ## Key Log Messages
 
-| Message                                     | Meaning                                |
-| ------------------------------------------- | -------------------------------------- |
-| `Server listening on`                       | Successful startup                     |
-| `Dataset loaded:`                           | Main PAF dataset loaded successfully   |
-| `Dataset not loaded`                        | Dataset loading failure                |
-| `Street search index disabled`              | `ENABLE_STREET_INDEX` not set to true  |
-| `Street index load failed (non-fatal)`      | Thoroughfare index files missing/corrupt |
-| `SIGTERM received`                          | Graceful shutdown initiated            |
+| Message                                | Meaning                                  |
+| -------------------------------------- | ---------------------------------------- |
+| `Server listening on`                  | Successful startup                       |
+| `Dataset loaded:`                      | Main PAF dataset loaded successfully     |
+| `Dataset not loaded`                   | Dataset loading failure                  |
+| `Street search index disabled`         | `ENABLE_STREET_INDEX` not set to true    |
+| `Street index load failed (non-fatal)` | Thoroughfare index files missing/corrupt |
+| `SIGTERM received`                     | Graceful shutdown initiated              |
 
 ## Environment Variables
 
-| Variable               | Default | Description                                              |
-| ---------------------- | ------- | -------------------------------------------------------- |
-| `PORT`                 | `3000`  | HTTP port to listen on                                   |
-| `DATA_DIR`             | `../data` (relative to built JS) | Path to binary dataset files  |
-| `NODE_OPTIONS`         | —       | Set to `--max-old-space-size=10240` for full PAF dataset |
-| `ENABLE_STREET_INDEX`  | `false` | Set to `true` to load thoroughfare index (~215 MB extra RAM) |
+| Variable              | Default                          | Description                                                  |
+| --------------------- | -------------------------------- | ------------------------------------------------------------ |
+| `PORT`                | `3000`                           | HTTP port to listen on                                       |
+| `DATA_DIR`            | `../data` (relative to built JS) | Path to binary dataset files                                 |
+| `NODE_OPTIONS`        | —                                | Set to `--max-old-space-size=10240` for full PAF dataset     |
+| `ENABLE_STREET_INDEX` | `false`                          | Set to `true` to load thoroughfare index (~215 MB extra RAM) |
 
 ## Dataset Updates
 
@@ -81,7 +81,8 @@ ls -lh packages/api/data/
 cat packages/api/data/meta.json
 ```
 
-Alternatively, override the input path directly (useful for CI or custom locations):
+Alternatively, override the input path directly (useful for CI or custom
+locations):
 
 ```bash
 pnpm --filter @paf/builder build -- --input "/path/to/CSV PAF.csv" --out packages/api/data
@@ -155,8 +156,7 @@ whether the thoroughfare index is loaded.
 
 **Symptoms:** Container exits unexpectedly, repeated restarts.
 
-1. Check current memory usage:
-   `curl http://localhost:3000/health/memory`
+1. Check current memory usage: `curl http://localhost:3000/health/memory`
 2. Verify the dataset size — `rows.bin` should be roughly 7–9 GB for a 40M
    record dataset
 3. If `ENABLE_STREET_INDEX=true`, the thoroughfare index adds ~215 MB. Increase
@@ -179,8 +179,8 @@ crashes on startup.
 
 ### Street index not loading
 
-**Symptoms:** `/lookup/street` returns 503 even though `ENABLE_STREET_INDEX=true`
-is set; logs show `Street index load failed`.
+**Symptoms:** `/lookup/street` returns 503 even though
+`ENABLE_STREET_INDEX=true` is set; logs show `Street index load failed`.
 
 1. Verify the four thoroughfare index files exist:
    ```bash
@@ -209,6 +209,7 @@ is set; logs show `Street index load failed`.
 **Symptoms:** High latency on lookup requests.
 
 Expected performance under normal conditions:
+
 - `GET /lookup/address` — p99 < 25 ms
 - `GET /lookup/postcode` — p99 < 10 ms
 - `GET /lookup/street` — p99 < 15 ms (for results sets ≤ 50)

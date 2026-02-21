@@ -47,8 +47,8 @@ control. Do not use a wildcard (`*`) in production.
 
 All query parameters are validated before use:
 
-- `postcode` (`/lookup/address`): maximum 10 characters, alphanumeric and
-  spaces only, UK format check
+- `postcode` (`/lookup/address`): maximum 10 characters, alphanumeric and spaces
+  only, UK format check
 - `q` (`/lookup/postcode`): 2–7 alphanumeric characters (spaces stripped before
   matching)
 - `q` (`/lookup/street`): maximum 80 characters, alphanumeric, spaces, hyphens

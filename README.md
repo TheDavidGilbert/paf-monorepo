@@ -74,15 +74,20 @@ This project consists of two packages:
 ### Key Features
 
 - **Fast lookups**: Binary search on sorted postcodes with O(log m) complexity
-- **Postcode autocomplete**: `GET /lookup/postcode` returns matching postcodes for partial input (e.g. "SW1A" or "SW1A 1")
-- **Street search** *(optional)*: `GET /lookup/street` searches by thoroughfare prefix and building number — enable with `ENABLE_STREET_INDEX=true`
+- **Postcode autocomplete**: `GET /lookup/postcode` returns matching postcodes
+  for partial input (e.g. "SW1A" or "SW1A 1")
+- **Street search** _(optional)_: `GET /lookup/street` searches by thoroughfare
+  prefix and building number — enable with `ENABLE_STREET_INDEX=true`
 - **Compact storage**: Custom binary format optimised for memory efficiency
-- **Sorted results**: Addresses sorted by building number (alpha first, then numeric)
+- **Sorted results**: Addresses sorted by building number (alpha first, then
+  numeric)
 - **CORS enabled**: Configured for localhost by default (easily customisable)
 - **Type-safe**: Full TypeScript implementation with strict mode
-- **Well-tested**: Jest test suite covering all routes, mappers, and dataset logic (106 tests)
+- **Well-tested**: Jest test suite covering all routes, mappers, and dataset
+  logic (106 tests)
 - **Test helpers**: Special postcode patterns for generating test HTTP responses
-- **Production-ready**: Graceful shutdown, health checks, HTTP caching, and operational runbooks
+- **Production-ready**: Graceful shutdown, health checks, HTTP caching, and
+  operational runbooks
 - **Code quality**: ESLint, Prettier, and Husky pre-commit hooks configured
 
 ## Requirements
@@ -197,7 +202,8 @@ This will:
    - `thoroughfareKeys.bin` — Sorted thoroughfare keys (street search index)
    - `thoroughfareStart.bin` — Thoroughfare range start indexes
    - `thoroughfareEnd.bin` — Thoroughfare range end indexes
-   - `thoroughfareSortedRows.bin` — Row indexes sorted by thoroughfare and building number
+   - `thoroughfareSortedRows.bin` — Row indexes sorted by thoroughfare and
+     building number
 3. If `packages/builder/input/CSV MULRES/CSV Multiple Residence.csv` is present,
    also generate Multiple Residence binary files:
    - `mrRows.bin` - MR unit row store
@@ -548,7 +554,8 @@ GET /lookup/postcode?q=<prefix>&limit=<n>
 
 **Query Parameters:**
 
-- `q` (required): Postcode prefix, 2–7 alphanumeric characters (case-insensitive, spaces stripped automatically)
+- `q` (required): Postcode prefix, 2–7 alphanumeric characters
+  (case-insensitive, spaces stripped automatically)
 - `limit` (optional): Maximum results to return (1–100, default: 10)
 
 **Example:**
@@ -570,11 +577,14 @@ curl "http://localhost:3000/lookup/postcode?q=SW1A&limit=5"
 }
 ```
 
-**Note:** Results are cached for 1 hour. The query is normalised to uppercase with spaces removed before searching, so `"sw1a 1"` and `"SW1A1"` produce the same results.
+**Note:** Results are cached for 1 hour. The query is normalised to uppercase
+with spaces removed before searching, so `"sw1a 1"` and `"SW1A1"` produce the
+same results.
 
-### Street Search *(optional feature)*
+### Street Search _(optional feature)_
 
-Requires `ENABLE_STREET_INDEX=true` and a rebuilt dataset. Returns 503 when not enabled.
+Requires `ENABLE_STREET_INDEX=true` and a rebuilt dataset. Returns 503 when not
+enabled.
 
 ```bash
 GET /lookup/street?q=<query>&town=<town>&limit=<n>
@@ -582,11 +592,14 @@ GET /lookup/street?q=<query>&town=<town>&limit=<n>
 
 **Query Parameters:**
 
-- `q` (required): Free-text query — building number + thoroughfare prefix (e.g. `"38 Flora"`, `"Flora Court"`)
+- `q` (required): Free-text query — building number + thoroughfare prefix (e.g.
+  `"38 Flora"`, `"Flora Court"`)
 - `town` (optional): Post town to filter results (e.g. `PLYMOUTH`)
 - `limit` (optional): Maximum results (1–50, default: 20)
 
-**Parsing rule:** if the first token is a building number (`38`, `38A`), it is used as a filter; the remainder is the thoroughfare prefix (minimum 3 characters).
+**Parsing rule:** if the first token is a building number (`38`, `38A`), it is
+used as a filter; the remainder is the thoroughfare prefix (minimum 3
+characters).
 
 **Example:**
 
@@ -618,7 +631,8 @@ curl "http://localhost:3000/lookup/street?q=38+Flora&town=PLYMOUTH"
 }
 ```
 
-> **Note:** PAF stores full street descriptors (`ROAD`, `STREET`, `AVENUE`, `CLOSE`) — abbreviations will not match.
+> **Note:** PAF stores full street descriptors (`ROAD`, `STREET`, `AVENUE`,
+> `CLOSE`) — abbreviations will not match.
 
 ## Binary Format
 
@@ -630,7 +644,8 @@ All binary files use **little-endian** byte order.
 
 Each row consists of:
 
-1. **Header** (32 bytes): Sixteen `uint16` values representing field lengths in bytes
+1. **Header** (32 bytes): Sixteen `uint16` values representing field lengths in
+   bytes
 2. **Payload**: Concatenated UTF-8 field bytes in fixed order
 
 Field order:
@@ -731,8 +746,10 @@ pnpm --filter @paf/api test
 
 #### Coverage
 
-- **Builder**: 30 tests — postcode normalisation, configuration parsing, checksum computation, binary I/O, MR index building
-- **API**: 76 tests — postcode validation, address mapping, response formatting, all three routes with mocked dataset (including street search)
+- **Builder**: 30 tests — postcode normalisation, configuration parsing,
+  checksum computation, binary I/O, MR index building
+- **API**: 76 tests — postcode validation, address mapping, response formatting,
+  all three routes with mocked dataset (including street search)
 
 **Total: 106 tests**
 
@@ -966,13 +983,13 @@ docker run -p 3000:3000 -m 12g paf-api:latest
 
 ### Environment Variables
 
-| Variable              | Default             | Description                                                            |
-| --------------------- | ------------------- | ---------------------------------------------------------------------- |
-| `PORT`                | `3000`              | HTTP server port                                                       |
-| `DATA_DIR`            | `packages/api/data` | Path to binary data files                                              |
-| `NODE_ENV`            | —                   | Set to `production` for production deployments                         |
-| `NODE_OPTIONS`        | —                   | Node.js options. Production: `--max-old-space-size=10240` (10 GB heap) |
-| `LOG_LEVEL`           | `info`              | Logging level (`info`, `warn`, `error`)                                |
+| Variable              | Default             | Description                                                                  |
+| --------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `PORT`                | `3000`              | HTTP server port                                                             |
+| `DATA_DIR`            | `packages/api/data` | Path to binary data files                                                    |
+| `NODE_ENV`            | —                   | Set to `production` for production deployments                               |
+| `NODE_OPTIONS`        | —                   | Node.js options. Production: `--max-old-space-size=10240` (10 GB heap)       |
+| `LOG_LEVEL`           | `info`              | Logging level (`info`, `warn`, `error`)                                      |
 | `ENABLE_STREET_INDEX` | `false`             | Set to `true` to load the thoroughfare index and enable `GET /lookup/street` |
 
 ## Performance Characteristics

@@ -42,24 +42,24 @@ table above). For the sample dataset, `--memory=512m` and
 
 ## Environment Variables
 
-| Variable               | Default | Description                                                                 |
-| ---------------------- | ------- | --------------------------------------------------------------------------- |
-| `PORT`                 | `3000`  | HTTP server port                                                            |
-| `DATA_DIR`             | `./data`| Path to binary dataset files                                                |
-| `NODE_ENV`             | —       | Set to `production` for production deployments                              |
-| `NODE_OPTIONS`         | —       | Use `--max-old-space-size=N` (MB) to cap V8 heap                            |
-| `LOG_LEVEL`            | `info`  | Set to `warn` in production to reduce logging overhead                      |
-| `ENABLE_STREET_INDEX`  | `false` | Set to `true` to load the thoroughfare index and enable `GET /lookup/street` |
+| Variable              | Default  | Description                                                                  |
+| --------------------- | -------- | ---------------------------------------------------------------------------- |
+| `PORT`                | `3000`   | HTTP server port                                                             |
+| `DATA_DIR`            | `./data` | Path to binary dataset files                                                 |
+| `NODE_ENV`            | —        | Set to `production` for production deployments                               |
+| `NODE_OPTIONS`        | —        | Use `--max-old-space-size=N` (MB) to cap V8 heap                             |
+| `LOG_LEVEL`           | `info`   | Set to `warn` in production to reduce logging overhead                       |
+| `ENABLE_STREET_INDEX` | `false`  | Set to `true` to load the thoroughfare index and enable `GET /lookup/street` |
 
 ### Street index memory overhead
 
 When `ENABLE_STREET_INDEX=true` the four thoroughfare index files are loaded
 into RAM in addition to the main dataset:
 
-| Dataset size            | Additional RAM |
-| ----------------------- | -------------- |
-| Sample (584K addresses) | ~3 MB          |
-| Full PAF (40M addresses)| ~215 MB        |
+| Dataset size             | Additional RAM |
+| ------------------------ | -------------- |
+| Sample (584K addresses)  | ~3 MB          |
+| Full PAF (40M addresses) | ~215 MB        |
 
 Increase `--memory` and `--max-old-space-size` accordingly when enabling this
 feature on large datasets.

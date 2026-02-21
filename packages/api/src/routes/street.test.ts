@@ -192,7 +192,12 @@ describe('streetRoute', () => {
   it('should parse a building number with trailing letter (e.g. 38A)', async () => {
     await app.inject({ method: 'GET', url: '/lookup/street?q=38A+Flora' });
 
-    expect(mockSearchByAddressPrefix).toHaveBeenCalledWith('FLORA', '38A', null, expect.any(Number));
+    expect(mockSearchByAddressPrefix).toHaveBeenCalledWith(
+      'FLORA',
+      '38A',
+      null,
+      expect.any(Number)
+    );
   });
 
   it('should return 200 with empty results when prefix does not match', async () => {

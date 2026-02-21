@@ -87,9 +87,8 @@ Check whether the API is running and the dataset is loaded.
 }
 ```
 
-`dataset.streetIndex` is `true` when the thoroughfare index is loaded
-(i.e. `ENABLE_STREET_INDEX=true` was set). When `false`, `/lookup/street`
-returns 503.
+`dataset.streetIndex` is `true` when the thoroughfare index is loaded (i.e.
+`ENABLE_STREET_INDEX=true` was set). When `false`, `/lookup/street` returns 503.
 
 **Response 503 Service Unavailable:**
 
@@ -182,14 +181,15 @@ than their postcode.
 
 | Parameter | Type   | Required | Description                                              |
 | --------- | ------ | -------- | -------------------------------------------------------- |
-| `q`       | string | Yes      | House number (optional) + street prefix, e.g. `38 Flora`|
+| `q`       | string | Yes      | House number (optional) + street prefix, e.g. `38 Flora` |
 | `town`    | string | No       | Filter by post town (case-insensitive)                   |
 | `limit`   | number | No       | Maximum results to return (1–50, default: 20)            |
 
 **Query parsing rules:**
 
-- If the first word is a number (optionally with a trailing letter — `38`, `38A`),
-  it is treated as a building number and the remainder as the street prefix
+- If the first word is a number (optionally with a trailing letter — `38`,
+  `38A`), it is treated as a building number and the remainder as the street
+  prefix
 - Otherwise the entire query is treated as a street prefix
 - The street prefix must be **at least 3 characters** after removing the
   building number
@@ -356,13 +356,13 @@ numeric (1, 2, 10, 100).
 
 ### HTTP Status Codes
 
-| Status | Meaning               | Common Cause                                              |
-| ------ | --------------------- | --------------------------------------------------------- |
-| 200    | Success               | Address(es) found                                         |
-| 400    | Bad Request           | Invalid postcode format or invalid street query           |
-| 404    | Not Found             | Valid postcode not in dataset                             |
-| 500    | Internal Server Error | Server error                                              |
-| 503    | Service Unavailable   | Dataset not loaded, or street index not enabled           |
+| Status | Meaning               | Common Cause                                    |
+| ------ | --------------------- | ----------------------------------------------- |
+| 200    | Success               | Address(es) found                               |
+| 400    | Bad Request           | Invalid postcode format or invalid street query |
+| 404    | Not Found             | Valid postcode not in dataset                   |
+| 500    | Internal Server Error | Server error                                    |
+| 503    | Service Unavailable   | Dataset not loaded, or street index not enabled |
 
 ### 400 Bad Request
 

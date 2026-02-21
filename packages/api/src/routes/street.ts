@@ -96,7 +96,8 @@ export function streetRoute(fastify: FastifyInstance): void {
     if (!VALID_QUERY_CHARS.test(q)) {
       return reply.status(400).send({
         status: 400,
-        message: 'Query contains invalid characters (alphanumeric, spaces, hyphens and apostrophes only)',
+        message:
+          'Query contains invalid characters (alphanumeric, spaces, hyphens and apostrophes only)',
         query: q,
       });
     }

@@ -4,7 +4,13 @@ import { dirname, join } from 'node:path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 
-import { loadDataset, loadMRDataset, loadThoroughfareIndex, hasThoroughfareIndex, getDataset } from './dataset.js';
+import {
+  loadDataset,
+  loadMRDataset,
+  loadThoroughfareIndex,
+  hasThoroughfareIndex,
+  getDataset,
+} from './dataset.js';
 import { addressRoute } from './routes/address.js';
 import { postcodeRoute } from './routes/postcode.js';
 import { streetRoute } from './routes/street.js';
