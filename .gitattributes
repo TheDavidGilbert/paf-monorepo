@@ -1,0 +1,15 @@
+# Normalise all text files to LF in the repo and on checkout
+* text=auto eol=lf
+
+# Explicit text files
+*.ts   text eol=lf
+*.js   text eol=lf
+*.cjs  text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+
+# Binaries — no conversion
+*.bin  binary
