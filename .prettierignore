@@ -35,6 +35,9 @@ pnpm-lock.yaml
 package-lock.json
 yarn.lock
 
+# Generated files (auto-updated by release-please — not hand-authored)
+CHANGELOG.md
+
 # Misc
 .git
 .env
