@@ -7,6 +7,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0](https://github.com/TheDavidGilbert/paf-monorepo/compare/paf-monorepo-v1.1.0...paf-monorepo-v1.2.0) (2026-02-21)
+
+
+### Features
+
+* add address autocomplete - street level lookup ([1af339e](https://github.com/TheDavidGilbert/paf-monorepo/commit/1af339e07554d40389055989aeb20f1fa1df6d16))
+* add Multiple Residence (MR) data support ([227bcc4](https://github.com/TheDavidGilbert/paf-monorepo/commit/227bcc4aa953bb4ad57512c175a34baa1d273cb5))
+* add Multiple Residence (MR) data support ([2a2b053](https://github.com/TheDavidGilbert/paf-monorepo/commit/2a2b053b592c295d9b8464c94131cb510d33da52))
+* **address:** added functionality for house and street lookup [NOTICKET] ([1d9ed8f](https://github.com/TheDavidGilbert/paf-monorepo/commit/1d9ed8fc78a973cfe5b423e511f307e4bde316b8))
+* **routes:** standardised routing and some cleanup [NOTICKET] ([f0d6002](https://github.com/TheDavidGilbert/paf-monorepo/commit/f0d6002227f9f39e85e9735aabe913f9c1af43bb))
+* **search:** implemented fuzzy lookahead search and other opts ([a1cdd66](https://github.com/TheDavidGilbert/paf-monorepo/commit/a1cdd66c1221fd4c1b2291ce2f655990e90975dc))
+* **search:** implemented partial search endpoint and other opts ([05896fb](https://github.com/TheDavidGilbert/paf-monorepo/commit/05896fb37f69d04e63d42165317bb8e8c574185b))
+* **versioning:** added release please ([f52355f](https://github.com/TheDavidGilbert/paf-monorepo/commit/f52355f218551b54cfe153d160852bb7ea8de90d))
+* **versioning:** added release please ([b663704](https://github.com/TheDavidGilbert/paf-monorepo/commit/b663704a66d649bd0f325005c214091b45560860))
+
+
+### Bug Fixes
+
+* **ci:** removed version for action-setup ([e8ac583](https://github.com/TheDavidGilbert/paf-monorepo/commit/e8ac583ee3cac911ba87646ad62bdb8c52791443))
+* **dependabot:** tidy up vulnerabilities [NOTICKET] ([b57667b](https://github.com/TheDavidGilbert/paf-monorepo/commit/b57667b4ec0cb80ba3e8b7b8b999f26b150c1b38))
+* **format:** formatting issues ([3d7e239](https://github.com/TheDavidGilbert/paf-monorepo/commit/3d7e239a30599501f80a1a195d38d01e8b1757a5))
+* **spec:** added extra tests and updated openapi spec ([80108b6](https://github.com/TheDavidGilbert/paf-monorepo/commit/80108b6634f5176a9d231d1f45355a87600426c0))
+* **tests:** schema misaligned with leftover field ([b768d8a](https://github.com/TheDavidGilbert/paf-monorepo/commit/b768d8a1c06db846a3aad98c86ed156b08a3a7d8))
+
 ## [1.1.0](https://github.com/TheDavidGilbert/paf-monorepo/compare/paf-monorepo-v1.0.0...paf-monorepo-v1.1.0) (2026-02-20)
 
 ### Features
