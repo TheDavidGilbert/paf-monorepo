@@ -1,87 +1,30 @@
-# PAF Address Lookup Service - Operations Guide
+# Operations Runbook
 
-This guide covers common operational tasks for running the PAF Address Lookup
-Service.
-
-## Table of Contents
-
-- [Service Endpoints](#service-endpoints)
-- [Architecture](#architecture)
-- [Common Operations](#common-operations)
-- [Dataset Updates](#dataset-updates)
-- [Troubleshooting](#troubleshooting)
-- [Rollback Procedures](#rollback-procedures)
+Practical reference for running the PAF Address Lookup Service on a single
+Docker instance.
 
 ## Service Endpoints
 
-| Endpoint                            | Purpose               | Expected Response            |
-| ----------------------------------- | --------------------- | ---------------------------- |
-| `/health`                           | Combined health check | 200 OK + dataset info        |
-| `/health/live`                      | Liveness probe        | 200 OK (always if running)   |
-| `/health/ready`                     | Readiness probe       | 200 OK (when ready to serve) |
-| `/lookup/postcode?postcode=SW1A1AA` | Postcode lookup       | 200 OK + address data        |
-| `/lookup/autocomplete?q=SW1A`       | Postcode autocomplete | 200 OK + matching postcodes  |
+| Endpoint                               | Purpose               | Expected Response           |
+| -------------------------------------- | --------------------- | --------------------------- |
+| `GET /health`                          | Combined health check | 200 OK + dataset info       |
+| `GET /health/live`                     | Liveness probe        | 200 OK (always if running)  |
+| `GET /health/ready`                    | Readiness probe       | 200 OK (when dataset ready) |
+| `GET /lookup/address?postcode=SW1A1AA` | Postcode lookup       | 200 OK + address data       |
+| `GET /lookup/postcode?q=SW1A`          | Postcode autocomplete | 200 OK + matching postcodes |
 
-## Architecture
-
-```
-Client → Load Balancer → Application Instance(s) → In-Memory Dataset
-```
-
-**Key characteristics:**
-
-- **Application instances**: Node.js process with the full dataset loaded in
-  memory
-- **Dataset**: Royal Mail PAF records read into RAM at startup (read-only)
-- **Startup time**: 2–12 seconds depending on dataset size
-- **No external dependencies**: No database, no cache — all data is in-process
-  memory
-
-## Common Operations
-
-### Service Restart
-
-**When to use:** Memory leak suspected, configuration change, degraded state.
+## Service Restart
 
 ```bash
-# Kubernetes
-kubectl rollout restart deployment/paf-api -n <namespace>
-kubectl rollout status deployment/paf-api -n <namespace>
+docker restart paf-api
 
-# AWS ECS
-aws ecs update-service \
-  --cluster <cluster-name> \
-  --service paf-api \
-  --force-new-deployment
-```
-
-**Validate after restart:**
-
-```bash
+# Validate after restart
 curl http://localhost:3000/health
 curl http://localhost:3000/health/ready
-curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
 ```
 
-### View Logs
-
-**Kubernetes:**
-
-```bash
-kubectl logs -l app=paf-api -n <namespace> --tail=100
-kubectl logs -f deployment/paf-api -n <namespace>
-```
-
-**AWS ECS / CloudWatch:**
-
-```bash
-aws logs tail /aws/ecs/paf-api --follow
-aws logs filter-log-events \
-  --log-group-name /aws/ecs/paf-api \
-  --filter-pattern "ERROR"
-```
-
-**Key log messages:**
+## Key Log Messages
 
 | Message               | Meaning                     |
 | --------------------- | --------------------------- |
@@ -90,78 +33,24 @@ aws logs filter-log-events \
 | `Dataset not loaded`  | Dataset loading failure     |
 | `SIGTERM received`    | Graceful shutdown initiated |
 
-### Check Service Status
-
-```bash
-# Kubernetes
-kubectl get pods -l app=paf-api -n <namespace>
-kubectl describe pod <pod-name> -n <namespace>
-
-# AWS ECS
-aws ecs describe-services \
-  --cluster <cluster-name> \
-  --services paf-api
-```
-
-### Scale Service
-
-```bash
-# Kubernetes
-kubectl scale deployment paf-api --replicas=4 -n <namespace>
-
-# AWS ECS
-aws ecs update-service \
-  --cluster <cluster-name> \
-  --service paf-api \
-  --desired-count 4
-```
-
-Minimum 2 instances recommended for high availability. Each instance requires
-approximately 12 GB RAM for a production (40M record) dataset.
-
-### Update Environment Variables
-
-**Key variables:**
-
-| Variable       | Default  | Description                       |
-| -------------- | -------- | --------------------------------- |
-| `PORT`         | `3000`   | HTTP server port                  |
-| `DATA_DIR`     | `./data` | Path to binary data files         |
-| `NODE_ENV`     | —        | Set to `production`               |
-| `NODE_OPTIONS` | —        | e.g. `--max-old-space-size=10240` |
-| `LOG_LEVEL`    | `info`   | `info` or `warn`                  |
-
-```bash
-# Kubernetes — edit ConfigMap then restart
-kubectl edit configmap paf-api-config -n <namespace>
-kubectl rollout restart deployment/paf-api -n <namespace>
-```
-
 ## Dataset Updates
 
-The Royal Mail PAF dataset is updated monthly. Follow this process to deploy a
-new version.
+The Royal Mail PAF dataset is updated monthly. To deploy a new version:
 
-### 1. Build New Dataset
+### 1. Build the new dataset
 
 ```bash
 # Place new CSV files in the builder input directory
-cp royal_mail_paf_YYYYMM.csv packages/builder/input/CSV\ PAF/
+cp royal_mail_paf_YYYYMM.csv packages/builder/input/
 
-# Build
 pnpm build:builder
 
 # Verify output
 ls -lh packages/api/data/
-```
-
-Verify `meta.json` looks correct:
-
-```bash
 cat packages/api/data/meta.json
 ```
 
-Expected structure:
+Expected `meta.json` structure:
 
 ```json
 {
@@ -169,177 +58,86 @@ Expected structure:
   "builtAt": "2026-02-20T10:30:00.000Z",
   "rows": 40123456,
   "distinctPostcodes": 1789012,
-  "checksums": { ... }
+  "checksums": {}
 }
 ```
 
-### 2. Test Locally
+### 2. Test locally
 
 ```bash
 pnpm --filter @paf/api build
 pnpm --filter @paf/api start
 
-# In another terminal
 curl http://localhost:3000/health
-curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
+curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
 pnpm --filter @paf/api test
 ```
 
-**Verification checklist:**
-
-- [ ] Health check returns new dataset version
-- [ ] Sample postcodes return correct addresses
-- [ ] All tests pass
-- [ ] Memory usage reasonable (~9 GB for 40M records)
-
-### 3. Deploy
+### 3. Rebuild and redeploy the container
 
 ```bash
-# Build and push container image (adjust for your registry)
 docker build -t paf-api:2026-02 .
-docker push <registry>/paf-api:2026-02
+docker stop paf-api
+docker run -d \
+  --name paf-api \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  paf-api:2026-02
 
-# Kubernetes rolling update
-kubectl set image deployment/paf-api \
-  paf-api=<registry>/paf-api:2026-02 \
-  -n <namespace>
-kubectl rollout status deployment/paf-api -n <namespace>
-```
-
-**Post-deploy check:**
-
-```bash
-# Confirm dataset version on running instances
-kubectl exec <pod-name> -n <namespace> -- \
-  curl -s http://localhost:3000/health | grep version
-```
-
-### 4. Rollback Dataset (if needed)
-
-```bash
-# Kubernetes — revert to previous image
-kubectl rollout undo deployment/paf-api -n <namespace>
-
-# ECS — update to previous task definition revision
-aws ecs update-service \
-  --cluster <cluster-prod> \
-  --service paf-api \
-  --task-definition paf-api:PREVIOUS_REVISION
+# Confirm dataset version
+curl http://localhost:3000/health
 ```
 
 ## Troubleshooting
 
-### High Memory Usage
+### Out-of-memory / OOM crashes
 
-**Symptoms:** Memory significantly above expected (~9 GB for 40M records), OOM
-kills, frequent restarts.
+**Symptoms:** Container exits unexpectedly, repeated restarts.
 
-```bash
-# Check current memory usage
-kubectl top pods -l app=paf-api -n <namespace>
+1. Check current memory usage:
+   `curl http://localhost:3000/health | grep -i memory`
+2. Verify the dataset size — `rows.bin` should be roughly 7–9 GB for a 40M
+   record dataset
+3. Increase the Docker memory limit and set
+   `NODE_OPTIONS=--max-old-space-size=10240`
+4. Restart the container
 
-# Check pod events for OOM
-kubectl describe pod <pod-name> -n <namespace>
+### Dataset not loading
 
-# Check health endpoint for memory info
-curl http://localhost:3000/health | jq .memory
-```
+**Symptoms:** `/health` returns 503, logs show "Dataset not loaded", container
+crashes on startup.
 
-**Solutions:**
-
-1. Verify dataset size — `rows.bin` should be roughly 7–9 GB for 40M records
-2. Check for memory leak in application logs
-3. Increase pod memory limit
-4. Restart affected pods
-
-### Slow Response Times
-
-**Symptoms:** High latency, timeouts.
-
-```bash
-# Quick latency check
-curl -w "\nTime: %{time_total}s\n" \
-  "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
-
-# Check CPU and memory
-kubectl top pods -l app=paf-api -n <namespace>
-```
-
-**Solutions:**
-
-1. Scale out if CPU is high
-2. Verify binary files are not corrupted (`checksums` in `meta.json`)
-3. Check for a recent deployment that may have introduced a regression
-
-### Dataset Not Loading
-
-**Symptoms:** Health check returns 503, error "Dataset not loaded", pods crash
-on startup.
-
-```bash
-# Check logs
-kubectl logs <pod-name> -n <namespace>
-
-# Verify binary files exist in the container
-kubectl exec <pod-name> -n <namespace> -- ls -lh /app/packages/api/data/
-```
-
-**Solutions:**
-
-1. Confirm `DATA_DIR` environment variable points to the correct path
-2. Verify the Docker image includes the `data/` directory
-3. Check that the builder ran successfully and all files are present
+1. Verify binary files exist in the container:
+   `docker exec paf-api ls -lh /app/packages/api/data/`
+2. Check `DATA_DIR` environment variable points to the correct path
+3. Confirm `pnpm build:builder` completed successfully and all files were
+   included in the Docker image
 4. Rebuild the container image
 
-### High Error Rate
+### High error rate (5xx responses)
 
-**Symptoms:** Many 5xx responses.
+**Symptoms:** Many 5xx responses in logs or from monitoring.
 
-```bash
-# Get recent error logs
-kubectl logs -l app=paf-api -n <namespace> --tail=100 | grep ERROR
+1. Check readiness: `curl http://localhost:3000/health/ready`
+2. Review recent logs: `docker logs paf-api --tail=100`
+3. If a recent deployment caused the issue, roll back to the previous image:
+   ```bash
+   docker stop paf-api
+   docker run -d --name paf-api ... paf-api:previous-tag
+   ```
+4. Verify dataset integrity — check `checksums` in `meta.json`
 
-# Check readiness
-curl http://localhost:3000/health/ready
-```
+### Slow response times
 
-**Solutions:**
+**Symptoms:** High latency on lookup requests (expected p99 < 25 ms).
 
-1. Check for a recent deployment — rollback if so
-2. Verify the dataset is not corrupted
-3. Scale out if the issue is capacity-related
-4. Restart pods to clear transient errors
-
-## Rollback Procedures
-
-### Application Rollback
-
-```bash
-# Kubernetes
-kubectl rollout undo deployment/paf-api -n <namespace>
-kubectl rollout status deployment/paf-api -n <namespace>
-
-# ECS
-aws ecs update-service \
-  --cluster <cluster-prod> \
-  --service paf-api \
-  --task-definition paf-api:PREVIOUS_GOOD_REVISION
-```
-
-**Validate:**
-
-```bash
-curl http://localhost:3000/health
-curl "http://localhost:3000/lookup/postcode?postcode=SW1A%201AA"
-```
-
-### Configuration Rollback
-
-```bash
-# Kubernetes — revert ConfigMap and restart
-kubectl edit configmap paf-api-config -n <namespace>
-kubectl rollout restart deployment/paf-api -n <namespace>
-```
+1. Quick check:
+   `curl -w "\nTime: %{time_total}s\n" "http://localhost:3000/lookup/address?postcode=SW1A%201AA"`
+2. Verify `NODE_OPTIONS=--max-old-space-size=10240` is set (prevents GC
+   thrashing)
+3. Check container CPU is not heavily contended
+4. Reduce `LOG_LEVEL` to `warn` if verbose logging is contributing
 
 ---
 

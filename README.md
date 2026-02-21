@@ -12,6 +12,39 @@
 A Node.js monorepo for processing Royal Mail PAF (Postcode Address File) CSV
 data and serving postcode lookups via a REST API.
 
+## Licence & Data Requirements
+
+> [!IMPORTANT] **You must hold a valid Royal Mail PAF licence before using this
+> project.**
+>
+> This project does **not** include any Royal Mail data. It is a framework for
+> processing and serving PAF data that you supply yourself. You are solely
+> responsible for obtaining the correct licence for your use case and ensuring
+> ongoing compliance with Royal Mail's terms of use.
+>
+> - [PAF information and licensing](https://www.poweredbypaf.com/)
+> - [Register to download sample data](https://www.poweredbypaf.com/download-sample-data/)
+> - [Developer resources](https://www.poweredbypaf.com/resources/)
+
+## About This Project
+
+This project is free to use, fork, and build on. It is designed for developers
+who need a fast, self-hosted UK address lookup service and already have access
+to Royal Mail PAF data.
+
+There is **no database**. All address data is loaded into memory at startup from
+binary files pre-built from your PAF CSV data. This means zero query latency at
+the cost of RAM — RAM requirements range from ~230 MB for the sample dataset up
+to ~9 GB for the full 40 million record PAF (12 GB recommended allocation). See
+[HOSTING.md](HOSTING.md) for the full breakdown by dataset size.
+
+You are responsible for:
+
+- Obtaining your own Royal Mail PAF licence
+- Providing your own PAF CSV data files
+- Building the binary dataset files using `@paf/builder`
+- Ensuring your deployment complies with Royal Mail's terms
+
 ## Documentation
 
 - **[openapi.yaml](openapi.yaml)** - OpenAPI 3.1 specification (import into
@@ -32,23 +65,17 @@ data and serving postcode lookups via a REST API.
 This project consists of two packages:
 
 - **`@paf/builder`**: A build tool that reads Royal Mail PAF CSV files, extracts
-  B2C-relevant fields, and generates compact binary row stores with lookup
-  indexes. Results are sorted by building number (alphabetic first, then
-  numeric) for consistent ordering.
+  relevant fields, and generates compact binary row stores with lookup indexes.
+  Results are sorted by building number (alphabetic first, then numeric) for
+  consistent ordering.
 - **`@paf/api`**: A Fastify REST API that loads binary assets into memory and
   serves fast postcode lookups with CORS support.
-
-> **Note**: This is an open-source tool for processing and serving Royal Mail
-> PAF data. Users are responsible for obtaining their own Royal Mail PAF license
-> and ensuring compliance with Royal Mail's terms. The dataset in production
-> deployments may contain 40+ million records requiring 12+ GB RAM. See
-> [HOSTING.md](HOSTING.md) for infrastructure requirements.
 
 ### Key Features
 
 - **Fast lookups**: Binary search on sorted postcodes with O(log m) complexity
-- **Prefix autocomplete**: `GET /lookup/autocomplete` returns matching postcodes
-  for partial input (e.g. "SW1A" or "SW1A 1")
+- **Prefix autocomplete**: `GET /lookup/postcode` returns matching postcodes for
+  partial input (e.g. "SW1A" or "SW1A 1")
 - **Compact storage**: Custom binary format optimised for memory efficiency
 - **Sorted results**: Addresses sorted by building number (alpha first, then
   numeric)
@@ -416,7 +443,7 @@ spaces, and V8 statistics.
 ### Postcode Lookup
 
 ```bash
-GET /lookup/postcode?postcode=<postcode>
+GET /lookup/address?postcode=<postcode>
 ```
 
 **Query Parameters:**
@@ -426,7 +453,7 @@ GET /lookup/postcode?postcode=<postcode>
 **Example:**
 
 ```bash
-curl "http://localhost:3000/lookup/postcode?postcode=PL1%201RZ"
+curl "http://localhost:3000/lookup/address?postcode=PL1%201RZ"
 ```
 
 **Response Format:**
@@ -513,7 +540,7 @@ values first (e.g., "A", "B"), followed by numeric values in ascending order
 ### Postcode Autocomplete
 
 ```bash
-GET /lookup/autocomplete?q=<prefix>&limit=<n>
+GET /lookup/postcode?q=<prefix>&limit=<n>
 ```
 
 **Query Parameters:**
@@ -525,7 +552,7 @@ GET /lookup/autocomplete?q=<prefix>&limit=<n>
 **Example:**
 
 ```bash
-curl "http://localhost:3000/lookup/autocomplete?q=SW1A&limit=5"
+curl "http://localhost:3000/lookup/postcode?q=SW1A&limit=5"
 ```
 
 **Response (200 OK):**
@@ -689,16 +716,16 @@ curl http://localhost:3000/health
 curl http://localhost:3000/health/memory
 
 # Valid postcode lookup
-curl "http://localhost:3000/lookup/postcode?postcode=PL1%201RZ"
+curl "http://localhost:3000/lookup/address?postcode=PL1%201RZ"
 
 # Invalid postcode format
-curl "http://localhost:3000/lookup/postcode?postcode=INVALID"
+curl "http://localhost:3000/lookup/address?postcode=INVALID"
 
 # Postcode not found
-curl "http://localhost:3000/lookup/postcode?postcode=ZZ99%209ZZ"
+curl "http://localhost:3000/lookup/address?postcode=ZZ99%209ZZ"
 
 # Autocomplete prefix search
-curl "http://localhost:3000/lookup/autocomplete?q=PL1"
+curl "http://localhost:3000/lookup/postcode?q=PL1"
 ```
 
 ### Test Response Generation
@@ -713,19 +740,19 @@ digits)
 
 ```bash
 # Generate 200 OK with mock data
-curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X200"
+curl "http://localhost:3000/lookup/address?postcode=XXX%20X200"
 
 # Generate 404 Not Found
-curl "http://localhost:3000/lookup/postcode?postcode=XXXX404"
+curl "http://localhost:3000/lookup/address?postcode=XXXX404"
 
 # Generate 400 Bad Request
-curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X400"
+curl "http://localhost:3000/lookup/address?postcode=XXX%20X400"
 
 # Generate 500 Internal Server Error
-curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X500"
+curl "http://localhost:3000/lookup/address?postcode=XXX%20X500"
 
 # Generate 503 Service Unavailable
-curl "http://localhost:3000/lookup/postcode?postcode=XXX%20X503"
+curl "http://localhost:3000/lookup/address?postcode=XXX%20X503"
 ```
 
 This feature is useful for testing error handling in client applications without

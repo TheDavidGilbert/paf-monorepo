@@ -21,18 +21,18 @@ servers:
 
 tags:
   - name: lookup
-    description: Postcode address lookup and autocomplete
+    description: Postcode address lookup and prefix search
   - name: health
     description: Health checks and observability
 
 paths:
   # ---------------------------------------------------------------------------
-  # Postcode lookup
+  # Address lookup
   # ---------------------------------------------------------------------------
 
-  /lookup/postcode:
+  /lookup/address:
     get:
-      operationId: lookupPostcode
+      operationId: lookupAddress
       tags: [lookup]
       summary: Lookup addresses by postcode
       description: |
@@ -149,11 +149,11 @@ paths:
   # Postcode autocomplete
   # ---------------------------------------------------------------------------
 
-  /lookup/autocomplete:
+  /lookup/postcode:
     get:
-      operationId: autocompletePostcode
+      operationId: lookupPostcode
       tags: [lookup]
-      summary: Autocomplete postcode prefix
+      summary: Postcode prefix search
       description: |
         Returns full postcodes whose prefix matches the supplied query string.
 

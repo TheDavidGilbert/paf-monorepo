@@ -45,14 +45,14 @@ jest.unstable_mockModule('../dataset.js', () => ({
   })),
 }));
 
-const { lookupRoute } = await import('./lookup.js');
+const { addressRoute } = await import('./address.js');
 
-describe('lookupRoute', () => {
+describe('addressRoute', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
     app = Fastify();
-    await app.register(lookupRoute);
+    await app.register(addressRoute);
   });
 
   afterAll(async () => {
@@ -62,7 +62,7 @@ describe('lookupRoute', () => {
   it('should return 400 when postcode is missing', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode',
+      url: '/lookup/address',
     });
 
     expect(response.statusCode).toBe(400);
@@ -73,7 +73,7 @@ describe('lookupRoute', () => {
   it('should return 200 for test status code XXX X200', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=XXX%20X200',
+      url: '/lookup/address?postcode=XXX%20X200',
     });
 
     expect(response.statusCode).toBe(200);
@@ -86,7 +86,7 @@ describe('lookupRoute', () => {
   it('should return 404 for test status code XXXX404', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=XXXX404',
+      url: '/lookup/address?postcode=XXXX404',
     });
 
     expect(response.statusCode).toBe(404);
@@ -98,7 +98,7 @@ describe('lookupRoute', () => {
   it('should return 400 for test status code XXX X400', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=XXX%20X400',
+      url: '/lookup/address?postcode=XXX%20X400',
     });
 
     expect(response.statusCode).toBe(400);
@@ -109,7 +109,7 @@ describe('lookupRoute', () => {
   it('should return 422 for test status code XXXX422', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=XXXX422',
+      url: '/lookup/address?postcode=XXXX422',
     });
 
     expect(response.statusCode).toBe(422);
@@ -120,7 +120,7 @@ describe('lookupRoute', () => {
   it('should return 400 for invalid UK postcode format', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=INVALID',
+      url: '/lookup/address?postcode=INVALID',
     });
 
     expect(response.statusCode).toBe(400);
@@ -131,7 +131,7 @@ describe('lookupRoute', () => {
   it('should return 200 with addresses for valid postcode', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=PL1%201LR',
+      url: '/lookup/address?postcode=PL1%201LR',
     });
 
     expect(response.statusCode).toBe(200);
@@ -148,7 +148,7 @@ describe('lookupRoute', () => {
   it('should return 404 for valid format but non-existent postcode', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=SW1A%201AA',
+      url: '/lookup/address?postcode=SW1A%201AA',
     });
 
     expect(response.statusCode).toBe(404);
@@ -159,7 +159,7 @@ describe('lookupRoute', () => {
   it('should handle postcodes without spaces', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=PL11LR',
+      url: '/lookup/address?postcode=PL11LR',
     });
 
     expect(response.statusCode).toBe(200);
@@ -170,7 +170,7 @@ describe('lookupRoute', () => {
   it('should include fullAddress flag as true', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=PL1%201LR',
+      url: '/lookup/address?postcode=PL1%201LR',
     });
 
     const body = JSON.parse(response.body) as SearchResponse;
@@ -180,7 +180,7 @@ describe('lookupRoute', () => {
   it('should always return countryCode GB and United Kingdom', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/postcode?postcode=PL1%201LR',
+      url: '/lookup/address?postcode=PL1%201LR',
     });
 
     const body = JSON.parse(response.body) as SearchResponse;
