@@ -9,23 +9,31 @@ and this project adheres to
 
 ## [1.1.0](https://github.com/TheDavidGilbert/paf-monorepo/compare/paf-monorepo-v1.0.0...paf-monorepo-v1.1.0) (2026-02-20)
 
-
 ### Features
 
-* add Multiple Residence (MR) data support ([bee758c](https://github.com/TheDavidGilbert/paf-monorepo/commit/bee758c98d6d42d617422ac5e3c858cb6968d60f))
-* add Multiple Residence (MR) data support ([984c256](https://github.com/TheDavidGilbert/paf-monorepo/commit/984c256ff4315bb33789684d36ff59c545e25d9a))
-* **search:** implemented fuzzy lookahead search and other opts ([441275e](https://github.com/TheDavidGilbert/paf-monorepo/commit/441275eb61de8dc2bbf75a1f61a3a6d9bce1172d))
-* **search:** implemented partial search endpoint and other opts ([f66c0ba](https://github.com/TheDavidGilbert/paf-monorepo/commit/f66c0bad6143bef05c243f88df45267be116789b))
-* **versioning:** added release please ([3d7be14](https://github.com/TheDavidGilbert/paf-monorepo/commit/3d7be14c09c5543c8cc368c097b41f7c4124245d))
-* **versioning:** added release please ([0d0bdab](https://github.com/TheDavidGilbert/paf-monorepo/commit/0d0bdab4cfc82d4421fa391c7e8dce2440456fba))
-
+- add Multiple Residence (MR) data support
+  ([bee758c](https://github.com/TheDavidGilbert/paf-monorepo/commit/bee758c98d6d42d617422ac5e3c858cb6968d60f))
+- add Multiple Residence (MR) data support
+  ([984c256](https://github.com/TheDavidGilbert/paf-monorepo/commit/984c256ff4315bb33789684d36ff59c545e25d9a))
+- **search:** implemented fuzzy lookahead search and other opts
+  ([441275e](https://github.com/TheDavidGilbert/paf-monorepo/commit/441275eb61de8dc2bbf75a1f61a3a6d9bce1172d))
+- **search:** implemented partial search endpoint and other opts
+  ([f66c0ba](https://github.com/TheDavidGilbert/paf-monorepo/commit/f66c0bad6143bef05c243f88df45267be116789b))
+- **versioning:** added release please
+  ([3d7be14](https://github.com/TheDavidGilbert/paf-monorepo/commit/3d7be14c09c5543c8cc368c097b41f7c4124245d))
+- **versioning:** added release please
+  ([0d0bdab](https://github.com/TheDavidGilbert/paf-monorepo/commit/0d0bdab4cfc82d4421fa391c7e8dce2440456fba))
 
 ### Bug Fixes
 
-* **ci:** removed version for action-setup ([8a90776](https://github.com/TheDavidGilbert/paf-monorepo/commit/8a907764461d0c5f13be3a4e0d1218bb3e578634))
-* **format:** formatting issues ([1dc6dc7](https://github.com/TheDavidGilbert/paf-monorepo/commit/1dc6dc7b463ff1226a22dd18d7111159653d27ff))
-* **spec:** added extra tests and updated openapi spec ([0d7b979](https://github.com/TheDavidGilbert/paf-monorepo/commit/0d7b979ff3461e8f9b861d8fbf161f23ea288f77))
-* **tests:** schema misaligned with leftover field ([7c4a508](https://github.com/TheDavidGilbert/paf-monorepo/commit/7c4a508404cbef1508a105dcc741042bed156670))
+- **ci:** removed version for action-setup
+  ([8a90776](https://github.com/TheDavidGilbert/paf-monorepo/commit/8a907764461d0c5f13be3a4e0d1218bb3e578634))
+- **format:** formatting issues
+  ([1dc6dc7](https://github.com/TheDavidGilbert/paf-monorepo/commit/1dc6dc7b463ff1226a22dd18d7111159653d27ff))
+- **spec:** added extra tests and updated openapi spec
+  ([0d7b979](https://github.com/TheDavidGilbert/paf-monorepo/commit/0d7b979ff3461e8f9b861d8fbf161f23ea288f77))
+- **tests:** schema misaligned with leftover field
+  ([7c4a508](https://github.com/TheDavidGilbert/paf-monorepo/commit/7c4a508404cbef1508a105dcc741042bed156670))
 
 ## [1.0.0] - 2026-02-20
 

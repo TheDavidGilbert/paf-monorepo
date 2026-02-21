@@ -17,7 +17,7 @@ const MAX_LIMIT = 100;
 /**
  * Postcode autocomplete route.
  *
- * GET /lookup/autocomplete?q=SW1A&limit=10
+ * GET /lookup/postcode?q=SW1A&limit=10
  *
  * Performs a prefix search across the loaded dataset's sorted postcode index.
  * The query is matched against the beginning of the stored postcode keys
@@ -25,8 +25,8 @@ const MAX_LIMIT = 100;
  *
  * Results are returned in alphabetical order and capped at `limit` (max 100).
  */
-export function postcodesRoute(fastify: FastifyInstance): void {
-  fastify.get('/lookup/autocomplete', async (request: FastifyRequest, reply: FastifyReply) => {
+export function postcodeRoute(fastify: FastifyInstance): void {
+  fastify.get('/lookup/postcode', async (request: FastifyRequest, reply: FastifyReply) => {
     const { q, limit: limitParam } = request.query as PostcodeSearchQuery;
 
     // Validate query presence

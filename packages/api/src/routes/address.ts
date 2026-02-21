@@ -38,8 +38,8 @@ function getTestStatusCode(postcode: string): number | null {
   return null;
 }
 
-export function lookupRoute(fastify: FastifyInstance): void {
-  fastify.get('/lookup/postcode', async (request: FastifyRequest, reply: FastifyReply) => {
+export function addressRoute(fastify: FastifyInstance): void {
+  fastify.get('/lookup/address', async (request: FastifyRequest, reply: FastifyReply) => {
     const { postcode } = request.query as QueryParams;
 
     // Set cache headers for successful lookups

@@ -14,7 +14,7 @@ jest.unstable_mockModule('../dataset.js', () => ({
   searchPostcodePrefix: mockSearchPostcodePrefix,
 }));
 
-const { postcodesRoute } = await import('./postcodes.js');
+const { postcodeRoute } = await import('./postcode.js');
 
 interface AutocompleteResponse {
   status: number;
@@ -26,12 +26,12 @@ interface AutocompleteResponse {
   message?: string;
 }
 
-describe('postcodesRoute', () => {
+describe('postcodeRoute', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
     app = Fastify();
-    await app.register(postcodesRoute);
+    await app.register(postcodeRoute);
   });
 
   afterAll(async () => {
@@ -49,7 +49,7 @@ describe('postcodesRoute', () => {
   it('should return 400 when q is missing', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete',
+      url: '/lookup/postcode',
     });
 
     expect(response.statusCode).toBe(400);
@@ -60,7 +60,7 @@ describe('postcodesRoute', () => {
   it('should return 400 for query shorter than 2 characters (after normalisation)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=S',
+      url: '/lookup/postcode?q=S',
     });
 
     expect(response.statusCode).toBe(400);
@@ -71,7 +71,7 @@ describe('postcodesRoute', () => {
   it('should return 400 for query longer than 7 characters (after normalisation)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A1AAX',
+      url: '/lookup/postcode?q=SW1A1AAX',
     });
 
     expect(response.statusCode).toBe(400);
@@ -82,7 +82,7 @@ describe('postcodesRoute', () => {
   it('should return 400 for query containing invalid characters', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1!',
+      url: '/lookup/postcode?q=SW1!',
     });
 
     expect(response.statusCode).toBe(400);
@@ -97,7 +97,7 @@ describe('postcodesRoute', () => {
   it('should return matching postcodes for a valid prefix', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A',
+      url: '/lookup/postcode?q=SW1A',
     });
 
     expect(response.statusCode).toBe(200);
@@ -113,7 +113,7 @@ describe('postcodesRoute', () => {
   it('should normalise the query to uppercase before searching', async () => {
     await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=sw1a',
+      url: '/lookup/postcode?q=sw1a',
     });
 
     expect(mockSearchPostcodePrefix).toHaveBeenLastCalledWith('SW1A', expect.any(Number));
@@ -123,7 +123,7 @@ describe('postcodesRoute', () => {
     // "SW1A 1" → normalised to "SW1A1" (5 chars)
     await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A%201',
+      url: '/lookup/postcode?q=SW1A%201',
     });
 
     expect(mockSearchPostcodePrefix).toHaveBeenLastCalledWith('SW1A1', expect.any(Number));
@@ -132,7 +132,7 @@ describe('postcodesRoute', () => {
   it('should return an empty results array when no postcodes match', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=ZZ9',
+      url: '/lookup/postcode?q=ZZ9',
     });
 
     expect(response.statusCode).toBe(200);
@@ -148,7 +148,7 @@ describe('postcodesRoute', () => {
   it('should apply the default limit of 10 when limit is omitted', async () => {
     await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A',
+      url: '/lookup/postcode?q=SW1A',
     });
 
     expect(mockSearchPostcodePrefix).toHaveBeenLastCalledWith('SW1A', 10);
@@ -157,7 +157,7 @@ describe('postcodesRoute', () => {
   it('should pass a custom limit to the search function', async () => {
     await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A&limit=2',
+      url: '/lookup/postcode?q=SW1A&limit=2',
     });
 
     expect(mockSearchPostcodePrefix).toHaveBeenLastCalledWith('SW1A', 2);
@@ -166,7 +166,7 @@ describe('postcodesRoute', () => {
   it('should cap limit at 100', async () => {
     await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A&limit=999',
+      url: '/lookup/postcode?q=SW1A&limit=999',
     });
 
     expect(mockSearchPostcodePrefix).toHaveBeenLastCalledWith('SW1A', 100);
@@ -175,7 +175,7 @@ describe('postcodesRoute', () => {
   it('should return 400 for a non-positive limit', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A&limit=0',
+      url: '/lookup/postcode?q=SW1A&limit=0',
     });
 
     expect(response.statusCode).toBe(400);
@@ -186,7 +186,7 @@ describe('postcodesRoute', () => {
   it('should return 400 for a non-numeric limit', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A&limit=abc',
+      url: '/lookup/postcode?q=SW1A&limit=abc',
     });
 
     expect(response.statusCode).toBe(400);
@@ -199,7 +199,7 @@ describe('postcodesRoute', () => {
   it('should set a public cache header on successful responses', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/lookup/autocomplete?q=SW1A',
+      url: '/lookup/postcode?q=SW1A',
     });
 
     expect(response.headers['cache-control']).toContain('public');

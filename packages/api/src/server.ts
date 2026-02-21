@@ -5,8 +5,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 
 import { loadDataset, loadMRDataset, getDataset } from './dataset.js';
-import { lookupRoute } from './routes/lookup.js';
-import { postcodesRoute } from './routes/postcodes.js';
+import { addressRoute } from './routes/address.js';
+import { postcodeRoute } from './routes/postcode.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -162,8 +162,8 @@ fastify.get('/health/memory', async (request, reply) => {
 });
 
 // Register routes
-await fastify.register(lookupRoute);
-await fastify.register(postcodesRoute);
+await fastify.register(addressRoute);
+await fastify.register(postcodeRoute);
 
 // Load dataset before starting server
 try {
