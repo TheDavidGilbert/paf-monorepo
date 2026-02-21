@@ -11,6 +11,7 @@ Everything you need to integrate with the PAF Address Lookup API.
   - [Health Check](#health-check)
   - [Postcode Lookup](#postcode-lookup)
   - [Postcode Autocomplete](#postcode-autocomplete)
+  - [Street Search](#street-search)
 - [Response Format](#response-format)
 - [Error Handling](#error-handling)
 - [Test Postcodes](#test-postcodes)
@@ -28,6 +29,9 @@ curl "http://localhost:3000/lookup/address?postcode=SW1A%201AA"
 
 # Autocomplete a partial postcode
 curl "http://localhost:3000/lookup/postcode?q=SW1A"
+
+# Street/address search (requires ENABLE_STREET_INDEX=true on the server)
+curl "http://localhost:3000/lookup/street?q=38+Flora+Court"
 ```
 
 ```javascript
@@ -77,10 +81,15 @@ Check whether the API is running and the dataset is loaded.
     "version": "paf-2026-02-07",
     "rows": 584266,
     "distinctPostcodes": 37150,
-    "builtAt": "2026-02-07T10:30:45.123Z"
+    "builtAt": "2026-02-07T10:30:45.123Z",
+    "streetIndex": true
   }
 }
 ```
+
+`dataset.streetIndex` is `true` when the thoroughfare index is loaded
+(i.e. `ENABLE_STREET_INDEX=true` was set). When `false`, `/lookup/street`
+returns 503.
 
 **Response 503 Service Unavailable:**
 
@@ -155,6 +164,103 @@ curl "http://localhost:3000/lookup/postcode?q=sw1a%201"
   `"SW1A1"` produce the same results
 - Results are sorted lexicographically
 - Responses are cached for 1 hour (`Cache-Control: public, max-age=3600`)
+
+---
+
+### Street Search
+
+Search for addresses by street name (and optional building number). Designed for
+typeahead/autocomplete flows where the user types part of their address rather
+than their postcode.
+
+**`GET /lookup/street`**
+
+> **Requires** the server to be started with `ENABLE_STREET_INDEX=true`. Returns
+> **503** if the thoroughfare index is not loaded.
+
+**Query Parameters:**
+
+| Parameter | Type   | Required | Description                                              |
+| --------- | ------ | -------- | -------------------------------------------------------- |
+| `q`       | string | Yes      | House number (optional) + street prefix, e.g. `38 Flora`|
+| `town`    | string | No       | Filter by post town (case-insensitive)                   |
+| `limit`   | number | No       | Maximum results to return (1–50, default: 20)            |
+
+**Query parsing rules:**
+
+- If the first word is a number (optionally with a trailing letter — `38`, `38A`),
+  it is treated as a building number and the remainder as the street prefix
+- Otherwise the entire query is treated as a street prefix
+- The street prefix must be **at least 3 characters** after removing the
+  building number
+- Only alphanumeric characters, spaces, hyphens and apostrophes are accepted
+
+**Examples:**
+
+```bash
+# Street prefix only (typeahead)
+curl "http://localhost:3000/lookup/street?q=Flora"
+
+# Building number + street prefix
+curl "http://localhost:3000/lookup/street?q=38+Flora"
+
+# With town filter and custom limit
+curl "http://localhost:3000/lookup/street?q=38+Flora&town=Plymouth&limit=10"
+
+# Multi-word street prefix
+curl "http://localhost:3000/lookup/street?q=Flora+Court"
+```
+
+**Response 200 OK:**
+
+```json
+{
+  "status": 200,
+  "query": "38 Flora",
+  "countryCode": "GB",
+  "country": "United Kingdom",
+  "total": 2,
+  "results": [
+    {
+      "formattedAddress": ["38 FLORA COURT", "PLYMOUTH", "PL1 1LR"],
+      "organisationName": "",
+      "departmentName": "",
+      "poBox": "",
+      "subBuildingName": "",
+      "buildingName": "",
+      "buildingNumber": "38",
+      "dependentThoroughfare": "",
+      "thoroughfare": "FLORA COURT",
+      "doubleDependentLocality": "",
+      "dependentLocality": "",
+      "postTown": "PLYMOUTH",
+      "postcode": "PL1 1LR",
+      "postcodeType": "S",
+      "suOrganisationIndicator": "",
+      "deliveryPointSuffix": "1A",
+      "udprn": "12345678",
+      "umprn": ""
+    }
+  ]
+}
+```
+
+**Response 503 Service Unavailable** (index not loaded):
+
+```json
+{
+  "status": 503,
+  "message": "Street search is not enabled on this instance. Set ENABLE_STREET_INDEX=true and ensure the dataset was built with street index support."
+}
+```
+
+**Notes:**
+
+- Results are sorted by building number: alphabetic entries first ("A", "B"),
+  then numeric (1, 2, 10, 100) per street
+- Responses are cached for 1 hour (`Cache-Control: public, max-age=3600`)
+- The `total` field reflects the number of results returned (after capping at
+  `limit`), not an estimate of all matching addresses
 
 ---
 
@@ -250,13 +356,13 @@ numeric (1, 2, 10, 100).
 
 ### HTTP Status Codes
 
-| Status | Meaning               | Common Cause                  |
-| ------ | --------------------- | ----------------------------- |
-| 200    | Success               | Address(es) found             |
-| 400    | Bad Request           | Invalid postcode format       |
-| 404    | Not Found             | Valid postcode not in dataset |
-| 500    | Internal Server Error | Server error                  |
-| 503    | Service Unavailable   | Dataset not loaded            |
+| Status | Meaning               | Common Cause                                              |
+| ------ | --------------------- | --------------------------------------------------------- |
+| 200    | Success               | Address(es) found                                         |
+| 400    | Bad Request           | Invalid postcode format or invalid street query           |
+| 404    | Not Found             | Valid postcode not in dataset                             |
+| 500    | Internal Server Error | Server error                                              |
+| 503    | Service Unavailable   | Dataset not loaded, or street index not enabled           |
 
 ### 400 Bad Request
 
@@ -394,6 +500,16 @@ interface AddressModel {
   umprn: string;
 }
 
+interface StreetSearchResponse {
+  status: number;
+  query: string;
+  countryCode: string;
+  country: string;
+  total: number;
+  results: AddressModel[];
+  message?: string; // present on error responses
+}
+
 async function lookupPostcode(
   baseUrl: string,
   postcode: string
@@ -403,7 +519,19 @@ async function lookupPostcode(
   return response.json() as Promise<SearchResponse>;
 }
 
-// Usage
+async function streetSearch(
+  baseUrl: string,
+  query: string,
+  options?: { town?: string; limit?: number }
+): Promise<StreetSearchResponse> {
+  const params = new URLSearchParams({ q: query.trim() });
+  if (options?.town) params.set('town', options.town);
+  if (options?.limit) params.set('limit', String(options.limit));
+  const response = await fetch(`${baseUrl}/lookup/street?${params}`);
+  return response.json() as Promise<StreetSearchResponse>;
+}
+
+// Usage — postcode lookup
 const data = await lookupPostcode('http://localhost:3000', 'SW1A 1AA');
 
 if (data.status === 200) {
@@ -414,6 +542,20 @@ if (data.status === 200) {
   console.log('Postcode not found');
 } else if (data.status === 400) {
   console.log('Invalid postcode format');
+}
+
+// Usage — street search typeahead
+const streetData = await streetSearch('http://localhost:3000', '38 Flora', {
+  town: 'Plymouth',
+  limit: 10,
+});
+
+if (streetData.status === 200) {
+  streetData.results.forEach((address) => {
+    console.log(address.formattedAddress.join(', '));
+  });
+} else if (streetData.status === 503) {
+  console.log('Street search not available on this instance');
 }
 ```
 

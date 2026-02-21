@@ -18,6 +18,7 @@ interface FieldConfig {
 
 const FIELDS: FieldConfig[] = fieldsConfig.fields;
 const _FIELD_COUNT = FIELDS.length;
+const THOROUGHFARE_KEY_WIDTH = 80; // PAF max thoroughfare & descriptor length (bytes)
 
 interface PostcodeRange {
   key: string;
@@ -89,6 +90,10 @@ async function main() {
   const pcEndPath = join(config.outputDir, 'pcEnd.bin');
   const schemaPath = join(config.outputDir, 'schema.json');
   const metaPath = join(config.outputDir, 'meta.json');
+  const thoroughfareKeysPath = join(config.outputDir, 'thoroughfareKeys.bin');
+  const thoroughfareStartPath = join(config.outputDir, 'thoroughfareStart.bin');
+  const thoroughfareEndPath = join(config.outputDir, 'thoroughfareEnd.bin');
+  const thoroughfareSortedRowsPath = join(config.outputDir, 'thoroughfareSortedRows.bin');
 
   // Collect all rows grouped by postcode
   const postcodeRowsMap = new Map<string, AddressRow[]>();
@@ -244,6 +249,78 @@ async function main() {
   writeUint32ArrayToFile(pcStartPath, pcStartU32);
   writeUint32ArrayToFile(pcEndPath, pcEndU32);
 
+  // ---------------------------------------------------------------------------
+  // Build thoroughfare secondary index
+  // ---------------------------------------------------------------------------
+  // Key: dependentThoroughfare if present, else thoroughfare (most specific street).
+  // Value: row indices sorted by building number.
+  // Produces 4 binary files loaded optionally by the API (ENABLE_STREET_INDEX).
+
+  console.log('Building thoroughfare index...');
+
+  // Collect thoroughfare → [{rowIndex, buildingNumber}] in primary sort order
+  const thoroughfareMap = new Map<string, { rowIndex: number; buildingNumber: string }[]>();
+  let totalTFEntries = 0;
+  let tfRowIndex = 0;
+
+  for (const postcodeKey of sortedPostcodeKeys) {
+    const rows = postcodeRowsMap.get(postcodeKey);
+    if (!rows) continue;
+    for (const row of rows) {
+      // fieldValues[5] = dependentThoroughfare, fieldValues[4] = thoroughfare
+      const tf = (row.fieldValues[5] || row.fieldValues[4] || '').toUpperCase().trim();
+      const bn = (row.fieldValues[6] || '').trim();
+      if (tf) {
+        if (!thoroughfareMap.has(tf)) thoroughfareMap.set(tf, []);
+        thoroughfareMap.get(tf)!.push({ rowIndex: tfRowIndex, buildingNumber: bn });
+        totalTFEntries++;
+      }
+      tfRowIndex++;
+    }
+  }
+
+  // Sort each thoroughfare's rows by building number
+  for (const entries of thoroughfareMap.values()) {
+    entries.sort((a, b) => compareBuildingNumbers(a.buildingNumber, b.buildingNumber));
+  }
+
+  // Sort distinct thoroughfare keys alphabetically
+  const sortedThoroughfares = Array.from(thoroughfareMap.keys()).sort();
+  const distinctThoroughfareCount = sortedThoroughfares.length;
+
+  // Build fixed-width key buffer (THOROUGHFARE_KEY_WIDTH bytes each, space-padded)
+  const thoroughfareKeysBuf = Buffer.alloc(
+    distinctThoroughfareCount * THOROUGHFARE_KEY_WIDTH,
+    0x20 // space
+  );
+
+  const thoroughfareStartU32 = new Uint32Array(distinctThoroughfareCount);
+  const thoroughfareEndU32 = new Uint32Array(distinctThoroughfareCount);
+  const thoroughfareSortedRowsU32 = new Uint32Array(totalTFEntries);
+
+  let sortedRowOffset = 0;
+  for (let i = 0; i < sortedThoroughfares.length; i++) {
+    const tf = sortedThoroughfares[i];
+    const entries = thoroughfareMap.get(tf)!;
+
+    // Write space-padded key (truncate if somehow over limit)
+    const keyStr = tf.substring(0, THOROUGHFARE_KEY_WIDTH);
+    thoroughfareKeysBuf.write(keyStr, i * THOROUGHFARE_KEY_WIDTH, keyStr.length, 'utf-8');
+
+    thoroughfareStartU32[i] = sortedRowOffset;
+    for (const entry of entries) {
+      thoroughfareSortedRowsU32[sortedRowOffset++] = entry.rowIndex;
+    }
+    thoroughfareEndU32[i] = sortedRowOffset;
+  }
+
+  writeFileSync(thoroughfareKeysPath, thoroughfareKeysBuf);
+  writeUint32ArrayToFile(thoroughfareStartPath, thoroughfareStartU32);
+  writeUint32ArrayToFile(thoroughfareEndPath, thoroughfareEndU32);
+  writeUint32ArrayToFile(thoroughfareSortedRowsPath, thoroughfareSortedRowsU32);
+
+  console.log(`Thoroughfare index built: ${distinctThoroughfareCount} distinct thoroughfares`);
+
   // Write schema.json
   const schema = {
     format: 'compact-rows/v1',
@@ -265,6 +342,10 @@ async function main() {
     ['pcStart.bin', pcStartPath],
     ['pcEnd.bin', pcEndPath],
     ['schema.json', schemaPath],
+    ['thoroughfareKeys.bin', thoroughfareKeysPath],
+    ['thoroughfareStart.bin', thoroughfareStartPath],
+    ['thoroughfareEnd.bin', thoroughfareEndPath],
+    ['thoroughfareSortedRows.bin', thoroughfareSortedRowsPath],
   ]) {
     checksums[name] = await computeChecksum(path);
   }
@@ -291,6 +372,16 @@ async function main() {
     };
   }
 
+  meta.streetIndex = {
+    distinctThoroughfares: distinctThoroughfareCount,
+    checksums: {
+      'thoroughfareKeys.bin': checksums['thoroughfareKeys.bin'],
+      'thoroughfareStart.bin': checksums['thoroughfareStart.bin'],
+      'thoroughfareEnd.bin': checksums['thoroughfareEnd.bin'],
+      'thoroughfareSortedRows.bin': checksums['thoroughfareSortedRows.bin'],
+    },
+  };
+
   writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
   checksums['meta.json'] = await computeChecksum(metaPath);
 
@@ -304,6 +395,11 @@ async function main() {
   console.log('  - pcEnd.bin');
   console.log('  - schema.json');
   console.log('  - meta.json');
+  console.log('  - thoroughfareKeys.bin');
+  console.log('  - thoroughfareStart.bin');
+  console.log('  - thoroughfareEnd.bin');
+  console.log('  - thoroughfareSortedRows.bin');
+  console.log(`Street index: ${distinctThoroughfareCount} distinct thoroughfares`);
   if (mrResult) {
     console.log('  - mrRows.bin');
     console.log('  - mrRowStart.bin');

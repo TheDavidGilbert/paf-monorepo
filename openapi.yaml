@@ -22,6 +22,8 @@ servers:
 tags:
   - name: lookup
     description: Postcode address lookup and prefix search
+  - name: street
+    description: Street/thoroughfare search (optional — requires ENABLE_STREET_INDEX=true and a rebuilt dataset)
   - name: health
     description: Health checks and observability
 
@@ -233,6 +235,149 @@ paths:
                     status: 400
                     message: Query contains invalid characters
                     query: 'SW!A'
+
+  # ---------------------------------------------------------------------------
+  # Street / thoroughfare search (optional feature)
+  # ---------------------------------------------------------------------------
+
+  /lookup/street:
+    get:
+      operationId: lookupStreet
+      tags: [street]
+      summary: Search addresses by thoroughfare and building number
+      description: |
+        Returns addresses whose thoroughfare (or dependent thoroughfare) begins
+        with the supplied prefix. An optional leading building number token
+        narrows results to that specific property.
+
+        **This endpoint requires `ENABLE_STREET_INDEX=true`** on the server.
+        If the street index is not loaded it returns `503`.
+
+        Query parsing rules:
+        - If the first token matches a building number pattern (`38`, `38A`)
+          it is used as a building number filter; the rest is the thoroughfare prefix.
+        - Otherwise the entire query is treated as a thoroughfare prefix.
+        - The thoroughfare prefix must be at least 3 characters.
+
+        Results are sorted by building number within each matching thoroughfare
+        and capped at `limit` (max 50, default 20).
+
+        > **Note:** Exact thoroughfare name spelling is required — PAF stores
+        > full descriptors (`ROAD`, `STREET`, `AVENUE`, `CLOSE`) without abbreviation.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: >
+            Free-text query. Examples: `"38 Flora"`, `"Flora Court"`, `"38A High Street"`.
+            Alphanumeric, spaces, hyphens and apostrophes only.
+          schema:
+            type: string
+            maxLength: 80
+            example: '38 Flora'
+        - name: town
+          in: query
+          required: false
+          description: >
+            Optional post town filter (e.g. `PLYMOUTH`). Case-insensitive.
+            Use to disambiguate common street names that appear in many towns.
+          schema:
+            type: string
+            maxLength: 60
+            example: PLYMOUTH
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of addresses to return (1–50).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: Matching addresses returned
+          headers:
+            Cache-Control:
+              description: Responses are cacheable for 1 hour
+              schema:
+                type: string
+                example: 'public, max-age=3600, must-revalidate'
+            Vary:
+              schema:
+                type: string
+                example: Accept-Encoding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreetSearchResponse'
+              example:
+                status: 200
+                query: '38 Flora'
+                countryCode: GB
+                country: United Kingdom
+                total: 1
+                results:
+                  - formattedAddress:
+                      - 38 FLORA COURT
+                      - PLYMOUTH
+                      - PL1 1LR
+                    organisationName: ''
+                    departmentName: ''
+                    poBox: ''
+                    subBuildingName: ''
+                    buildingName: ''
+                    buildingNumber: '38'
+                    dependentThoroughfare: ''
+                    thoroughfare: FLORA COURT
+                    doubleDependentLocality: ''
+                    dependentLocality: ''
+                    postTown: PLYMOUTH
+                    postcode: PL1 1LR
+                    postcodeType: S
+                    suOrganisationIndicator: ''
+                    deliveryPointSuffix: 1A
+                    udprn: '12345678'
+                    umprn: ''
+        '400':
+          description: Invalid or missing query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutocompleteErrorResponse'
+              examples:
+                missing:
+                  summary: Missing query parameter
+                  value:
+                    status: 400
+                    message: 'Query parameter "q" is required'
+                tooShort:
+                  summary: Thoroughfare prefix too short
+                  value:
+                    status: 400
+                    message: Thoroughfare prefix must be at least 3 characters
+                    query: '38 FL'
+                invalidChars:
+                  summary: Query contains invalid characters
+                  value:
+                    status: 400
+                    message: Query contains invalid characters
+                    query: '38 Flo!a'
+        '503':
+          description: Street index not loaded on this instance
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, message]
+                properties:
+                  status:
+                    type: integer
+                    example: 503
+                  message:
+                    type: string
+                    example: 'Street search is not enabled on this instance.'
 
   # ---------------------------------------------------------------------------
   # Health checks
@@ -544,6 +689,42 @@ components:
             Unique Multiple Residence Point Reference Number.
             Empty string for standard (non-MR) PAF records.
           example: ''
+
+    # -------------------------------------------------------------------------
+    # Street search
+    # -------------------------------------------------------------------------
+
+    StreetSearchResponse:
+      type: object
+      required:
+        - status
+        - query
+        - countryCode
+        - country
+        - total
+        - results
+      properties:
+        status:
+          type: integer
+          example: 200
+        query:
+          type: string
+          description: Original query string as supplied by the caller
+          example: '38 Flora'
+        countryCode:
+          type: string
+          example: GB
+        country:
+          type: string
+          example: United Kingdom
+        total:
+          type: integer
+          description: Number of addresses returned (≤ limit)
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressModel'
 
     # -------------------------------------------------------------------------
     # Autocomplete

@@ -47,9 +47,15 @@ control. Do not use a wildcard (`*`) in production.
 
 All query parameters are validated before use:
 
-- `postcode`: maximum 10 characters, alphanumeric and spaces only, UK format
-  check
-- `q` (autocomplete): 2–7 characters, alphanumeric only
+- `postcode` (`/lookup/address`): maximum 10 characters, alphanumeric and
+  spaces only, UK format check
+- `q` (`/lookup/postcode`): 2–7 alphanumeric characters (spaces stripped before
+  matching)
+- `q` (`/lookup/street`): maximum 80 characters, alphanumeric, spaces, hyphens
+  and apostrophes only; thoroughfare portion must be at least 3 characters
+- `town` (`/lookup/street`): maximum 60 characters, same character set as `q`
+- `limit` (postcode and street routes): must be a positive integer; capped at
+  100 and 50 respectively
 
 There is no database, so SQL/NoSQL injection is not applicable. Input is not
 executed or evaluated in any way.
