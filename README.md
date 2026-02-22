@@ -46,6 +46,12 @@ You are responsible for:
 - Building the binary dataset files using `@paf/builder`
 - Ensuring your deployment complies with Royal Mail's terms
 
+<!-- prettier-ignore -->
+> [!NOTE]
+> You may download this project and test against the sample PAF data provided by
+> Royal Mail.  This is the best way to determine if this project is suitable for 
+> your needs.
+
 ## Use Cases
 
 This project is a good fit if you need to:
