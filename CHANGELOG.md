@@ -7,6 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1](https://github.com/TheDavidGilbert/paf-monorepo/compare/paf-monorepo-v1.2.0...paf-monorepo-v1.2.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* **deps:** resolve 21 Dependabot security alerts ([24e0ec7](https://github.com/TheDavidGilbert/paf-monorepo/commit/24e0ec7241734d6f68638ca16f9f5e98161fa7ec))
+* **deps:** resolve 21 Dependabot security alerts ([2e774b6](https://github.com/TheDavidGilbert/paf-monorepo/commit/2e774b6ea27cb48b963a9a0ce0d2be0f51c0a9cf))
+
 ## [1.2.0](https://github.com/TheDavidGilbert/paf-monorepo/compare/paf-monorepo-v1.1.0...paf-monorepo-v1.2.0) (2026-02-21)
 
 
